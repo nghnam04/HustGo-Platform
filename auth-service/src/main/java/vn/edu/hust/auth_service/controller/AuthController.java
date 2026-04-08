@@ -6,8 +6,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.hust.auth_service.dto.AuthResponse;
 import vn.edu.hust.auth_service.dto.LoginRequest;
+import vn.edu.hust.auth_service.dto.RegisterRequest;
 import vn.edu.hust.auth_service.dto.SocialLoginRequest;
-import vn.edu.hust.auth_service.entity.User;
 import vn.edu.hust.auth_service.service.AuthService;
 
 @RestController
@@ -28,13 +28,14 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody User user) {
-        return ResponseEntity.ok(authService.register(user));
+    public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest request) {
+        return ResponseEntity.ok(authService.register(request));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(@RequestHeader("Authorization") String token) {
+    public ResponseEntity<String> logout(
+            @RequestHeader(value = "Authorization", required = false) String token) {
         authService.logout(token);
-        return ResponseEntity.ok("Đã đăng xuất và vô hiệu hóa token");
+        return ResponseEntity.ok("Đăng xuất thành công");
     }
 }

@@ -13,13 +13,14 @@ spring:
     show-sql: true
 
 # Redis
-  redis:
-    host: redis
-    port: 6379
+  data:
+    redis:
+      host: redis
+      port: 6379
 
 # JWT
 jwt:
-  secret: 1fff1f8da50efdae56c62665986370b0e5b9fb9e605982d5eef26613effa39e5
+  secret: ${JWT_SECRET}
   expiration: 604800000
 
 server:
@@ -27,4 +28,7 @@ server:
 
 app:
   google:
-    client-id: 749124689963-5i72ctaou6jbeb2panc897oohduhfi0h.apps.googleusercontent.com
+    client-id: ${GOOGLE_CLIENT_ID}
+  facebook:
+    app-id: ${FACEBOOK_APP_ID}
+    app-secret: ${FACEBOOK_APP_SECRET}
