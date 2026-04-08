@@ -25,13 +25,17 @@ public class User {
     @Column(unique = true, nullable = false)
     private String username;
 
-    private String password; // Nullable đối với Google/Facebook login
+    private String password;
     private String fullName;
+
+    @Column(name = "avatar_url", columnDefinition = "TEXT")
     private String avatarUrl;
 
     @Enumerated(EnumType.STRING)
     private AuthProvider provider;
-    private String providerId; // ID trả về từ Google/Facebook
+
+    @Column(name = "provider_id", columnDefinition = "TEXT")
+    private String providerId;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles",
