@@ -5,8 +5,11 @@ import io.jsonwebtoken.Jwts;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
+import vn.edu.hust.api_gateway.exception.HustGoException;
+
 import javax.crypto.SecretKey;
 
 @Component
@@ -32,6 +35,10 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
             String authHeader = request.getHeaders().get(HttpHeaders.AUTHORIZATION).get(0);
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 String token = authHeader.substring(7);
+                if (jwtTokenProvider.isTokenBlacklisted(token)) {
+                    throw new HustGoException(HttpStatus.UNAUTHORIZED, "Token đã logout hoặc bị thu hồi");
+                }
+
                 if (jwtTokenProvider.validateToken(token)) {
                     // Trích xuất claim để lấy Role và Username
                     Claims claims = Jwts.parser()
