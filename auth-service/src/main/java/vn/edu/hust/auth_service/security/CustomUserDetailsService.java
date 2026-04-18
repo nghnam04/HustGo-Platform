@@ -23,9 +23,16 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     @Transactional
     public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {
-        // tìm user theo email hoặc username
-        User user = userRepository.findByEmailOrUsername(identifier, identifier)
-                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng với: " + identifier));
+        User user;
+        // Kiểm tra nếu identifier có định dạng UUID
+        if (identifier.matches("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")) {
+            user = userRepository.findById(identifier)
+                    .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy user với ID: " + identifier));
+        } else {
+            // Tìm theo Email/Username
+            user = userRepository.findByEmailOrUsername(identifier, identifier)
+                    .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy User: " + identifier));
+        }
 
         List<SimpleGrantedAuthority> authorities = user.getRoles().stream()
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName().name()))

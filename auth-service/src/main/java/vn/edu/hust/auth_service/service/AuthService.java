@@ -199,7 +199,7 @@ public class AuthService {
 
     private AuthResponse buildAuthResponse(User user) {
         Authentication auth = new UsernamePasswordAuthenticationToken(
-                user.getEmail(),
+                user.getId(),
                 null,
                 user.getRoles().stream()
                         .map(r -> new SimpleGrantedAuthority("ROLE_" + r.getName().name()))
