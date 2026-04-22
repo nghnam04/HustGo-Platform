@@ -15,7 +15,8 @@ import vn.edu.hust.base_domain.dto.PaymentEvent;
 import vn.edu.hust.payment_service.utils.PaymentUtils;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -116,6 +117,11 @@ public class PaymentService {
                     .block();
 
             if (responseMomo != null && "0".equals(String.valueOf(responseMomo.get("resultCode")))) {
+
+                // 🔥 LOGIC CHẶN LINK CŨ: Lưu lại requestId (orderId có chứa timestamp) mới nhất cho đơn hàng gốc này
+                String originalIdForRedis = orderId.contains("-") ? orderId.split("-")[0] : orderId;
+                redisTemplate.opsForValue().set("latest_payment_id:" + originalIdForRedis, orderId, Duration.ofDays(1));
+
                 return Map.of(
                         "status", "PENDING",
                         "paymentUrl", responseMomo.get("payUrl"),
@@ -144,20 +150,24 @@ public class PaymentService {
             return;
         }
 
-        String orderId = payload.get("orderId");
-        if (orderId == null) {
+        String rawOrderId = payload.get("orderId");
+        if (rawOrderId == null) {
             log.error("Missing orderId");
             return;
         }
 
+        String originalOrderId = rawOrderId.contains("-")
+                ? rawOrderId.substring(0, rawOrderId.lastIndexOf("-"))
+                : rawOrderId;
+
         // 🔥 IDEMPOTENT - Redis SETNX (atomic)
-        String redisKey = "payment:processed:" + orderId;
+        String redisKey = "payment:processed:" + rawOrderId;
 
         Boolean success = redisTemplate.opsForValue()
                 .setIfAbsent(redisKey, "true", Duration.ofDays(1));
 
         if (Boolean.FALSE.equals(success)) {
-            log.warn("Duplicate callback ignored: {}", orderId);
+            log.warn("Duplicate callback ignored: {}", rawOrderId);
             return;
         }
 
@@ -168,7 +178,7 @@ public class PaymentService {
                 "&amount=" + payload.get("amount") +
                 "&extraData=" + payload.getOrDefault("extraData", "") +
                 "&message=" + payload.getOrDefault("message", "") +
-                "&orderId=" + orderId +
+                "&orderId=" + rawOrderId +
                 "&orderInfo=" + payload.getOrDefault("orderInfo", "") +
                 "&orderType=" + payload.getOrDefault("orderType", "") +
                 "&partnerCode=" + payload.get("partnerCode") +
@@ -185,6 +195,16 @@ public class PaymentService {
             return;
         }
 
+        // 🔥 LOGIC CHẶN LINK CŨ: Kiểm tra xem rawOrderId này có phải là link mới nhất không
+        String latestId = redisTemplate.opsForValue().get("latest_payment_id:" + originalOrderId);
+        if (latestId != null && !latestId.equals(rawOrderId)) {
+            log.warn("CẢNH BÁO: Khách hàng đã thanh toán bằng link CŨ! ID nhận được: {}, ID mới nhất: {}", rawOrderId, latestId);
+            // Ở đây bạn có thể chọn publish một event FAILED để Order Service đánh dấu đơn hàng cần kiểm tra,
+            // hoặc 그냥 return; để bỏ qua giao dịch này.
+            // Nếu muốn bỏ qua hoàn toàn và không cập nhật trạng thái đơn hàng thì uncomment dòng return dưới đây:
+            // return;
+        }
+
         String status = "0".equals(payload.get("resultCode")) ? "SUCCESS" : "FAILED";
 
         double amount;
@@ -195,7 +215,7 @@ public class PaymentService {
             amount = 0;
         }
 
-        publishPaymentEvent(orderId, status, amount, "MOMO");
+        publishPaymentEvent(originalOrderId, status, amount, "MOMO");
     }
 
     private void publishPaymentEvent(String orderId, String status, double amount, String method) {

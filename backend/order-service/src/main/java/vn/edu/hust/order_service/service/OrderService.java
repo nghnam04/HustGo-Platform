@@ -143,8 +143,13 @@ public class OrderService {
 
         Order saved = orderRepository.save(order);
 
+        String paymentUrl = null;
+        if (request.paymentMethod() == PaymentMethod.ONLINE_PAYMENT) {
+            paymentUrl = callPaymentService(saved.getId(), saved.getTotalPrice());
+        }
+
         recordHistory(orderId, OrderStatus.PENDING, OrderStatus.PENDING, customerId, "Khách hàng cập nhật thông tin đơn hàng");
-        return OrderMapper.mapToResponse(saved);
+        return OrderMapper.mapToResponse(saved, paymentUrl);
     }
 
     // Huỷ đơn hàng
@@ -345,8 +350,9 @@ public class OrderService {
     @CircuitBreaker(name = "${spring.application.name}", fallbackMethod = "fallbackPayment")
     private String callPaymentService(String orderId, Double totalPrice) {
         try {
+            String requestId = orderId + "-" + System.currentTimeMillis();
             String url = "http://payment-service/api/payments/initiate/"
-                    + orderId
+                    + requestId
                     + "?method=MOMO"
                     + "&totalPrice=" + totalPrice;
 
@@ -385,7 +391,6 @@ public class OrderService {
 
                 if (response.containsKey("paymentUrl")) {
                     String paymentUrl = (String) response.get("paymentUrl");
-                    log.info("Nhận được paymentUrl: {}", paymentUrl);
                     return paymentUrl;
                 } else {
                     log.warn("Payment Service không trả về trường 'paymentUrl'. Response: {}", response);
