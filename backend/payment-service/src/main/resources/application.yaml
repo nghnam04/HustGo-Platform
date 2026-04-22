@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: payment-service
+
+  # kafka
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+
+server:
+  port: 8082
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+# topic name
+app:
+  kafka:
+    topics:
+      payment-events: payment-events
+
+# Resilience4j configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      payment-service:
+        failureRateThreshold: 50
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 5s
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowSize: 10
+
+  # Retry configuration
+  retry:
+    instances:
+      payment-service:
+        maxRetryAttempts: 3
+        waitDuration: 2s
+
+payment:
+  momo:
+    endpoint: ${MOMO_ENDPOINT}
+    partner-code: ${MOMO_PARTNER_CODE}
+    access-key: ${MOMO_ACCESS_KEY}
+    secret-key: ${MOMO_SECRET_KEY}
+    callback-url: ${PAYMENT_CALLBACK_URL:http://localhost:9191/api/payments/callback}

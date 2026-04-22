@@ -1,0 +1,79 @@
+spring:
+  application:
+    name: order-service
+
+  # postgresql
+  datasource:
+    url: jdbc:postgresql://localhost:5432/hustgo_order_db
+    username: postgres
+    password: admin
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # kafka
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        spring.json.add.type.headers: false
+    consumer:
+      group-id: order-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "vn.edu.hust.*"
+
+server:
+  port: 8081
+
+  error:
+    include-binding-errors: always
+    include-message: always
+
+# topic names
+app:
+  kafka:
+    topics:
+      order-events: order-events
+      payment-events: payment-events
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+# cloudinary
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
+
+# Resilience4j configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      order-service:
+        failureRateThreshold: 50
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 5s
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowSize: 10
+
+# Retry configuration
+  retry:
+    instances:
+      order-service:
+        maxRetryAttempts: 3
+        waitDuration: 2s
+
