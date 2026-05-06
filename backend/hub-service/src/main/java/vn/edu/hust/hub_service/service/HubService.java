@@ -2,10 +2,14 @@ package vn.edu.hust.hub_service.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import vn.edu.hust.hub_service.dto.HubRequest;
+import vn.edu.hust.hub_service.dto.HubResponse;
 import vn.edu.hust.hub_service.entity.Hub;
+import vn.edu.hust.hub_service.mapper.HubMapper;
 import vn.edu.hust.hub_service.repository.HubRepository;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -17,34 +21,43 @@ public class HubService {
         return hubRepository.existsByIdAndActiveTrue(id);
     }
 
-    public List<Hub> getAllHubs() {
-        return hubRepository.findAll();
+    public List<HubResponse> getAllHubs() {
+        return hubRepository.findAll().stream()
+                .map(HubMapper::toResponse)
+                .collect(Collectors.toList());
     }
 
-    public Hub getHubById(String id) {
+    private Hub getHubEntityById(String id) {
         return hubRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Hub: " + id));
     }
 
-    public Hub createHub(Hub hub) {
-        hub.setActive(true);
-        return hubRepository.save(hub);
+    public HubResponse getHubById(String id) {
+        return HubMapper.toResponse(getHubEntityById(id));
     }
 
-    public Hub updateHub(String id, Hub details) {
-        Hub hub = getHubById(id);
-        hub.setName(details.getName());
-        hub.setCode(details.getCode());
-        hub.setAddress(details.getAddress());
-        hub.setDistrict(details.getDistrict());
-        hub.setLat(details.getLat());
-        hub.setLng(details.getLng());
-        hub.setManagerId(details.getManagerId());
-        return hubRepository.save(hub);
+    public HubResponse createHub(HubRequest request) {
+        Hub hub = HubMapper.toEntity(request);
+        hub.setActive(true);
+        return HubMapper.toResponse(hubRepository.save(hub));
+    }
+
+    public HubResponse updateHub(String id, HubRequest details) {
+        Hub hub = getHubEntityById(id);
+
+        hub.setName(details.name());
+        hub.setCode(details.code());
+        hub.setAddress(details.address());
+        hub.setDistrict(details.district());
+        hub.setLat(details.lat());
+        hub.setLng(details.lng());
+        hub.setManagerId(details.managerId());
+
+        return HubMapper.toResponse(hubRepository.save(hub));
     }
 
     public void deleteHub(String id) {
-        Hub hub = getHubById(id);
+        Hub hub = getHubEntityById(id);
         hub.setActive(false);
         hubRepository.save(hub);
     }
