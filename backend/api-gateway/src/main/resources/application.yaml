@@ -30,6 +30,13 @@ spring:
               predicates:
                 - Path=/api/auth/**
 
+            - id: user-management
+              uri: lb://auth-service
+              predicates:
+                - Path=/api/users/**
+              filters:
+                - name: AuthenticationFilter
+
             - id: order-service
               uri: lb://order-service
               predicates:
