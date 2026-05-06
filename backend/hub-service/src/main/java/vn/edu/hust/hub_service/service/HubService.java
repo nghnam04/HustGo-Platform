@@ -45,13 +45,24 @@ public class HubService {
     public HubResponse updateHub(String id, HubRequest details) {
         Hub hub = getHubEntityById(id);
 
+        // Xử lý logic check trùng mã code (giữ nguyên logic an toàn đã sửa)
+        if (!hub.getCode().equals(details.code())) {
+            if (hubRepository.existsByCodeAndIdNot(details.code(), id)) {
+                throw new RuntimeException("Mã Hub " + details.code() + " đã tồn tại ở một Hub khác!");
+            }
+            hub.setCode(details.code());
+        }
+
+        // Cập nhật các thông tin cơ bản
         hub.setName(details.name());
-        hub.setCode(details.code());
         hub.setAddress(details.address());
         hub.setDistrict(details.district());
         hub.setLat(details.lat());
         hub.setLng(details.lng());
         hub.setManagerId(details.managerId());
+
+        // CẬP NHẬT TRẠNG THÁI TẠI ĐÂY
+        hub.setActive(details.active());
 
         return HubMapper.toResponse(hubRepository.save(hub));
     }
