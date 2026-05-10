@@ -65,6 +65,13 @@ spring:
               filters:
                 - RewritePath=/api/payments/(?<segment>.*), /api/payments/${segment}
 
+            - id: tracking-service
+              uri: lb://tracking-service
+              predicates:
+                - Path=/api/tracking/**
+              filters:
+                - AuthenticationFilter
+
 server:
   port: 9191
 
