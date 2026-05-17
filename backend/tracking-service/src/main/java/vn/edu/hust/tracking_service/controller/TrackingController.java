@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import vn.edu.hust.tracking_service.service.TrackingService;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/tracking")
 @RequiredArgsConstructor
@@ -25,6 +27,11 @@ public class TrackingController {
     @PreAuthorize("hasAnyRole('CUSTOMER', 'SHIPPER', 'HUB_ADMIN', 'SUPER_ADMIN')")
     @GetMapping("/{orderId}/current")
     public ResponseEntity<?> getCurrentLocation(@PathVariable String orderId) {
-        return ResponseEntity.ok(trackingService.getCurrentLocation(orderId));
+        Map<String, Object> location = trackingService.getCurrentLocation(orderId);
+        if (location == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(location);
     }
 }
