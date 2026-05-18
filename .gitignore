@@ -34,3 +34,6 @@ build/
 
 .git/
 out
+
+backend/data/
+.env

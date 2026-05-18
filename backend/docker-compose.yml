@@ -49,6 +49,16 @@ services:
       - "9411:9411"
     restart: always
 
+  osrm:
+    image: osrm/osrm-backend:latest
+    container_name: hustgo-osrm
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/data
+    command: osrm-routed --algorithm mld /data/hanoi-latest.osrm
+    restart: always
+
 volumes:
   postgres_data:
   redis_data:
