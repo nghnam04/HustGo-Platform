@@ -11,17 +11,25 @@ import org.springframework.stereotype.Component;
 import vn.edu.hust.api_gateway.exception.HustGoException;
 
 import javax.crypto.SecretKey;
+import java.util.List;
 
 @Component
 public class AuthenticationFilter extends AbstractGatewayFilterFactory<AuthenticationFilter.Config> {
     private final JwtTokenProvider jwtTokenProvider;
+
+    private static final List<String> OPEN_API_ENDPOINTS = List.of(
+            "/api/auth/login",
+            "/api/auth/register",
+            "/api/auth/social-login"
+    );
 
     public AuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
         super(Config.class);
         this.jwtTokenProvider = jwtTokenProvider;
     }
 
-    public static class Config {}
+    public static class Config {
+    }
 
     @Override
     public GatewayFilter apply(Config config) {
@@ -32,8 +40,15 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                 return chain.filter(exchange);
             }
 
+            String requestPath = request.getURI().getPath();
+
+            boolean isRouteSecured = OPEN_API_ENDPOINTS.stream().noneMatch(requestPath::contains);
+            if (!isRouteSecured) {
+                return chain.filter(exchange);
+            }
+
             if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
-                throw new RuntimeException("Authorization Header trống");
+                throw new HustGoException(HttpStatus.UNAUTHORIZED, "Authorization Header trống");
             }
 
             String authHeader = request.getHeaders().get(HttpHeaders.AUTHORIZATION).get(0);
@@ -64,7 +79,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                     return chain.filter(exchange.mutate().request(mutatedRequest).build());
                 }
             }
-            throw new RuntimeException("Không có quyền truy cập");
+            throw new HustGoException(HttpStatus.UNAUTHORIZED, "Không có quyền truy cập hệ thống");
         };
     }
 }

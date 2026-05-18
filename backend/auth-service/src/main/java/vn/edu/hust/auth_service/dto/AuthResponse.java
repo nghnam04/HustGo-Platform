@@ -8,5 +8,7 @@ public record AuthResponse(
         String username,
         String email,
         String fullName,
+        String avatarUrl,
         Set<String> roles
-) {}
+) {
+}

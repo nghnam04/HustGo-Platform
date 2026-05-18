@@ -1,9 +1,5 @@
 package vn.edu.hust.auth_service.service;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.gson.GsonFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,7 +24,6 @@ import vn.edu.hust.auth_service.repository.UserRepository;
 import vn.edu.hust.auth_service.security.JwtTokenProvider;
 import vn.edu.hust.auth_service.security.TokenBlacklistService;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -72,26 +67,29 @@ public class AuthService {
     public AuthResponse socialLogin(SocialLoginRequest request) {
         if (request.provider() == AuthProvider.GOOGLE) {
             try {
-                GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
-                        new NetHttpTransport(), new GsonFactory())
-                        .setAudience(Collections.singletonList(googleClientId))
-                        .build();
-                GoogleIdToken idToken = verifier.verify(request.token());
-                if (idToken == null) throw new RuntimeException("Token Google không hợp lệ");
+                Map<?, ?> googleResponse = webClient.get()
+                        .uri("https://www.googleapis.com/oauth2/v3/userinfo")
+                        .headers(headers -> headers.setBearerAuth(request.token()))
+                        .retrieve()
+                        .bodyToMono(Map.class)
+                        .block();
 
-                GoogleIdToken.Payload payload = idToken.getPayload();
-                String email = payload.getEmail();
-                String name = (String) payload.get("name");
-                String picture = (String) payload.get("picture");
-                String providerId = payload.getSubject();
+                if (googleResponse == null || googleResponse.get("sub") == null) {
+                    throw new RuntimeException("Không thể lấy thông tin từ tài khoản Google");
+                }
+
+                String providerId = (String) googleResponse.get("sub");
+                String name = (String) googleResponse.get("name");
+                String email = (String) googleResponse.get("email");
+                String picture = (String) googleResponse.get("picture");
 
                 log.info("Đăng nhập Google thành công cho email: {}", email);
 
                 User user = processSocialUser(email, name, picture, providerId, request.provider());
                 return buildAuthResponse(user);
             } catch (Exception e) {
-                log.error("Lỗi xác thực Google: {}", e.getMessage());
-                throw new RuntimeException("Xác thực Google thất bại");
+                log.error("Lỗi xác thực Google API: {}", e.getMessage());
+                throw new RuntimeException("Xác thực đối tác Google thất bại");
             }
         } else if (request.provider() == AuthProvider.FACEBOOK) {
             try {
@@ -211,9 +209,10 @@ public class AuthService {
         return new AuthResponse(
                 token,
                 user.getId(),
-                user.getEmail(),
                 user.getUsername(),
+                user.getEmail(),
                 user.getFullName(),
+                user.getAvatarUrl(),
                 user.getRoles().stream()
                         .map(r -> r.getName().name())
                         .collect(Collectors.toSet())
@@ -222,12 +221,10 @@ public class AuthService {
 
     private String extractFacebookPicture(Map<?, ?> fbResponse) {
         try {
-            Map<?, ?> pictureObj = (Map<?, ?>) fbResponse.get("picture");
-            if (pictureObj != null) {
-                Map<?, ?> dataObj = (Map<?, ?>) pictureObj.get("data");
-                if (dataObj != null) {
-                    return (String) dataObj.get("url");
-                }
+            // Sử dụng trực tiếp facebookId để sinh link tĩnh
+            String facebookId = (String) fbResponse.get("id");
+            if (facebookId != null) {
+                return "https://graph.facebook.com/" + facebookId + "/picture?type=large";
             }
         } catch (Exception e) {
             log.warn("Không thể trích xuất thông tin ảnh từ Facebook: {}", e.getMessage());
