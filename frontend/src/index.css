@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+
+  --color-wine-dark: #4a0e1a;
+  --color-wine-base: #801b29;
+  --color-wine-light: #b91c1c;
+  --color-wine-accent: #ef4444;
+
+  --animate-subtle-glow: subtle-glow 4s ease-in-out infinite;
+
+  @keyframes subtle-glow {
+    0%,
+    100% {
+      opacity: 0.1;
+    }
+    50% {
+      opacity: 0.2;
+    }
+  }
+}
+
+:root {
+  --bg-premium: #f8fafc;
+  --wine-deep: #4a0e1a;
+  --wine-base: #801b29;
+  --wine-light: #dc2626;
+  --wine-glow: rgba(220, 38, 38, 0.06);
+  --glass-border: rgba(128, 27, 41, 0.15);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  background-color: var(--bg-premium);
+  color: #0f172a;
+}
+
+/* Thanh cuộn Light Mode */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--wine-base);
+}
+
+/* --- UTILITY COMPONENTS DESIGN (LIGHT WINE SYSTEM) --- */
+
+.container-fluid {
+  @apply w-full h-full mx-auto px-6;
+}
+
+/* Nút bấm Đỏ Rượu  */
+.btn-primary {
+  background: linear-gradient(135deg, var(--wine-light), var(--wine-base));
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  @apply text-white py-2 px-5 rounded-lg font-semibold shadow-md shadow-red-600/10 
+         transition-all duration-300 hover:brightness-110 active:scale-[0.98] cursor-pointer;
+}
+
+/* Nút bấm phụ  */
+.btn-ghost {
+  border: 1px solid var(--glass-border);
+  background: rgba(128, 27, 41, 0.03);
+  @apply py-2 px-4 rounded-lg text-red-700 font-medium transition-all duration-200 
+         hover:bg-red-50 hover:text-red-800 active:scale-[0.98] cursor-pointer;
+}
+
+/* Card trắng bo tròn góc */
+.card-base {
+  background: #ffffff;
+  border: 1px solid rgba(128, 27, 41, 0.12);
+  @apply p-6 rounded-xl shadow-md shadow-slate-200/80;
+}
+
+/* Ô nhập liệu  */
+.input-base {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  @apply w-full px-4 py-2.5 rounded-lg text-slate-900 font-sans text-sm transition-all duration-200
+         placeholder:text-gray-400 focus:outline-none focus:border-wine-light focus:ring-2 focus:ring-wine-light/20;
+}
+
+.card-glow {
+  box-shadow:
+    0 10px 25px -5px rgba(0, 0, 0, 0.05),
+    0 0 16px 1px var(--wine-glow);
+  transition:
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.25s ease;
+}
+.card-glow:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 20px 35px -8px rgba(128, 27, 41, 0.12),
+    0 0 24px 2px rgba(220, 38, 38, 0.15);
+}
