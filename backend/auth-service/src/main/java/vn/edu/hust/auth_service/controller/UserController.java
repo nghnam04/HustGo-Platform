@@ -1,10 +1,16 @@
 package vn.edu.hust.auth_service.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.hust.auth_service.constant.RoleEnum;
+import vn.edu.hust.auth_service.dto.ChangePasswordRequest;
+import vn.edu.hust.auth_service.dto.UpdateProfileRequest;
+import vn.edu.hust.auth_service.dto.UserProfileResponse;
 import vn.edu.hust.auth_service.dto.UserResponse;
 import vn.edu.hust.auth_service.service.UserService;
 import vn.edu.hust.base_domain.dto.PageResponse;
@@ -17,6 +23,33 @@ import java.util.Set;
 public class UserController {
 
     private final UserService userService;
+
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserProfileResponse> getMyProfile(@AuthenticationPrincipal String userId) {
+        UserProfileResponse profile = userService.getMyProfile(userId);
+        return ResponseEntity.ok(profile);
+    }
+
+    @PutMapping(value = "/me", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserProfileResponse> updateMyProfile(
+            @AuthenticationPrincipal String userId,
+            @Valid @ModelAttribute UpdateProfileRequest request) {
+
+        UserProfileResponse updatedProfile = userService.updateMyProfile(userId, request);
+        return ResponseEntity.ok(updatedProfile);
+    }
+
+    @PatchMapping("/me/change-password")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<String> changePassword(
+            @AuthenticationPrincipal String userId,
+            @Valid @RequestBody ChangePasswordRequest request) {
+
+        userService.changePassword(userId, request);
+        return ResponseEntity.ok("Thay đổi mật khẩu thành công!");
+    }
 
     @GetMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
