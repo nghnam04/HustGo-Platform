@@ -63,7 +63,7 @@ spring:
               predicates:
                 - Path=/api/payments/**
               filters:
-                - RewritePath=/api/payments/(?<segment>.*), /api/payments/${segment}
+                - name: AuthenticationFilter
 
             - id: tracking-service
               uri: lb://tracking-service
@@ -71,6 +71,13 @@ spring:
                 - Path=/api/tracking/**
               filters:
                 - AuthenticationFilter
+
+            - id: routing-service
+              uri: lb://routing-service
+              predicates:
+                - Path=/api/routing/**
+              filters:
+                - name: AuthenticationFilter
 
 server:
   port: 9191
