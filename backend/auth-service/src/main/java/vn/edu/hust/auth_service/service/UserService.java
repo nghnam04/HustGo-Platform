@@ -166,8 +166,32 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new HustGoException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
 
-        if (user.getRoles().stream().anyMatch(r -> r.getName() == RoleEnum.SUPER_ADMIN)) {
-            throw new HustGoException(HttpStatus.FORBIDDEN, "Không thể sửa đổi vai trò của Super Admin");
+        // Không cho chỉnh sửa tài khoản SUPER_ADMIN
+        if (user.getRoles().stream()
+                .anyMatch(r -> r.getName() == RoleEnum.SUPER_ADMIN)) {
+
+            throw new HustGoException(
+                    HttpStatus.FORBIDDEN,
+                    "Không thể sửa đổi vai trò của Super Admin"
+            );
+        }
+
+        // Không cho gán role SUPER_ADMIN
+        if (roleEnums.contains(RoleEnum.SUPER_ADMIN)) {
+
+            throw new HustGoException(
+                    HttpStatus.FORBIDDEN,
+                    "Không thể cấp quyền SUPER_ADMIN"
+            );
+        }
+
+        // Bắt buộc phải có ít nhất 1 role
+        if (roleEnums.isEmpty()) {
+
+            throw new HustGoException(
+                    HttpStatus.BAD_REQUEST,
+                    "Người dùng phải có ít nhất một vai trò"
+            );
         }
 
         Set<Role> roles = roleEnums.stream()

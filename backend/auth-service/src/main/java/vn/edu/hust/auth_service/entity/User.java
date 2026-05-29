@@ -3,7 +3,6 @@ package vn.edu.hust.auth_service.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import vn.edu.hust.auth_service.constant.AuthProvider;
-import vn.edu.hust.auth_service.constant.RoleEnum;
 
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -39,8 +38,8 @@ public class User {
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles",
-        joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "role_id"))
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles;
 
     private LocalDateTime createdAt;
