@@ -1,10 +1,12 @@
 package vn.edu.hust.hub_service.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import vn.edu.hust.hub_service.dto.HubRequest;
 import vn.edu.hust.hub_service.dto.HubResponse;
 import vn.edu.hust.hub_service.entity.Hub;
+import vn.edu.hust.hub_service.exception.HustGoException;
 import vn.edu.hust.hub_service.mapper.HubMapper;
 import vn.edu.hust.hub_service.repository.HubRepository;
 
@@ -29,7 +31,7 @@ public class HubService {
 
     private Hub getHubEntityById(String id) {
         return hubRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy Hub: " + id));
+                .orElseThrow(() -> new HustGoException(HttpStatus.NOT_FOUND, "Không tìm thấy Hub: " + id));
     }
 
     public HubResponse getHubById(String id) {
@@ -37,31 +39,46 @@ public class HubService {
     }
 
     public HubResponse createHub(HubRequest request) {
+
+        if (hubRepository.existsByCode(request.code())) {
+            throw new HustGoException(HttpStatus.CONFLICT, "Mã Hub đã tồn tại " + request.code());
+        }
+
         Hub hub = HubMapper.toEntity(request);
-        hub.setActive(true);
+
+        return HubMapper.toResponse(hubRepository.save(hub));
+    }
+
+    public HubResponse assignManager(String hubId, String managerId) {
+
+        Hub hub = getHubEntityById(hubId);
+
+        if (hubRepository.existsByManagerId(managerId)) {
+            throw new HustGoException(HttpStatus.CONFLICT, "Hub admin đã được gán cho hub khác");
+        }
+
+        hub.setManagerId(managerId);
+
         return HubMapper.toResponse(hubRepository.save(hub));
     }
 
     public HubResponse updateHub(String id, HubRequest details) {
         Hub hub = getHubEntityById(id);
 
-        // Xử lý logic check trùng mã code (giữ nguyên logic an toàn đã sửa)
         if (!hub.getCode().equals(details.code())) {
             if (hubRepository.existsByCodeAndIdNot(details.code(), id)) {
-                throw new RuntimeException("Mã Hub " + details.code() + " đã tồn tại ở một Hub khác!");
+                throw new HustGoException(HttpStatus.CONFLICT, "Mã Hub " + details.code() + " đã tồn tại ở một Hub khác!");
             }
             hub.setCode(details.code());
         }
 
-        // Cập nhật các thông tin cơ bản
         hub.setName(details.name());
         hub.setAddress(details.address());
+        hub.setWard(details.ward());
         hub.setDistrict(details.district());
+        hub.setProvince(details.province());
         hub.setLat(details.lat());
         hub.setLng(details.lng());
-        hub.setManagerId(details.managerId());
-
-        // CẬP NHẬT TRẠNG THÁI TẠI ĐÂY
         hub.setActive(details.active());
 
         return HubMapper.toResponse(hubRepository.save(hub));
@@ -71,5 +88,14 @@ public class HubService {
         Hub hub = getHubEntityById(id);
         hub.setActive(false);
         hubRepository.save(hub);
+    }
+
+    public HubResponse getHubByManager(String managerId) {
+
+        Hub hub = hubRepository.findByManagerIdAndActiveTrue(managerId)
+                .orElseThrow(() ->
+                        new HustGoException(HttpStatus.NOT_FOUND, "Hub admin chưa được gán kho"));
+
+        return HubMapper.toResponse(hub);
     }
 }

@@ -16,23 +16,26 @@ public record HubRequest(
         @NotBlank(message = "Địa chỉ không được để trống")
         String address,
 
-        @NotNull(message = "Quận/Huyện phải thuộc Hà Nội và không được để trống")
+        @NotBlank(message = "Phường/Xã không được để trống")
+        String ward,
+
+        @NotNull(message = "Quận/Huyện không được để trống")
         HanoiDistrict district,
 
-        @NotNull(message = "Vĩ độ không được để trống")
+        @NotBlank(message = "Tỉnh/Thành không được để trống")
+        String province,
+
+        @NotNull(message = "Lat không được để trống")
         @Min(value = -90, message = "Vĩ độ phải từ -90 đến 90")
         @Max(value = 90, message = "Vĩ độ phải từ -90 đến 90")
         Double lat,
 
-        @NotNull(message = "Kinh độ không được để trống")
+        @NotNull(message = "Lng không được để trống")
         @Min(value = -180, message = "Kinh độ phải từ -180 đến 180")
         @Max(value = 180, message = "Kinh độ phải từ -180 đến 180")
         Double lng,
 
-        @NotBlank(message = "ID quản trị viên Hub không được để trống")
-        String managerId,
-
-        @NotNull(message = "Trạng thái hoạt động không được để trống")
+        @NotNull(message = "Trạng thái active không được để trống")
         Boolean active
 ) {
 }

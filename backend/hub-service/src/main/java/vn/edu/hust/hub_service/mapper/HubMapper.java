@@ -5,16 +5,18 @@ import vn.edu.hust.hub_service.dto.HubResponse;
 import vn.edu.hust.hub_service.entity.Hub;
 
 public class HubMapper {
+
     public static Hub toEntity(HubRequest request) {
         return Hub.builder()
                 .code(request.code())
                 .name(request.name())
                 .address(request.address())
+                .ward(request.ward())
                 .district(request.district())
+                .province(request.province())
                 .lat(request.lat())
                 .lng(request.lng())
-                .managerId(request.managerId())
-                .active(true)
+                .active(request.active())
                 .build();
     }
 
@@ -24,11 +26,15 @@ public class HubMapper {
                 hub.getCode(),
                 hub.getName(),
                 hub.getAddress(),
+                hub.getWard(),
                 hub.getDistrict(),
+                hub.getProvince(),
                 hub.getLat(),
                 hub.getLng(),
+                hub.getManagerId(),
                 hub.isActive(),
-                hub.getManagerId()
+                hub.getCreatedAt(),
+                hub.getUpdatedAt()
         );
     }
 }

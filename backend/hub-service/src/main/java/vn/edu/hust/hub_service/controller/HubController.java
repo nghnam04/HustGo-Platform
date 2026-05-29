@@ -4,7 +4,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import vn.edu.hust.hub_service.dto.AssignManagerRequest;
 import vn.edu.hust.hub_service.dto.HubRequest;
 import vn.edu.hust.hub_service.dto.HubResponse;
 import vn.edu.hust.hub_service.service.HubService;
@@ -45,6 +47,17 @@ public class HubController {
                 .body(hubService.createHub(request));
     }
 
+    @PatchMapping("/api/hubs/{id}/assign-manager")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<HubResponse> assignManager(
+            @PathVariable String id,
+            @RequestBody AssignManagerRequest request
+    ) {
+        return ResponseEntity.ok(
+                hubService.assignManager(id, request.managerId())
+        );
+    }
+
     // Cập nhật Hub
     @PutMapping("/api/hubs/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
@@ -58,5 +71,13 @@ public class HubController {
     public ResponseEntity<String> deleteHub(@PathVariable String id) {
         hubService.deleteHub(id);
         return ResponseEntity.ok("Đã xoá thành công Hub: " + id);
+    }
+
+    @GetMapping("/api/hubs/me")
+    @PreAuthorize("hasRole('HUB_ADMIN')")
+    public ResponseEntity<HubResponse> getMyHub(
+            @AuthenticationPrincipal String adminId
+    ) {
+        return ResponseEntity.ok(hubService.getHubByManager(adminId));
     }
 }
