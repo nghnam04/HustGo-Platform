@@ -119,6 +119,19 @@ public class UserService {
         log.info("Người dùng với ID {} đã đổi mật khẩu thành công", userId);
     }
 
+    public boolean isHubAdmin(String userId) {
+
+        User user = userRepository.findById(userId)
+                .orElse(null);
+
+        if (user == null) {
+            return false;
+        }
+
+        return user.getRoles().stream()
+                .anyMatch(role -> role.getName() == RoleEnum.HUB_ADMIN);
+    }
+
     public PageResponse<UserResponse> getAllUsers(
             int pageNo, int pageSize, String sortBy, String sortDir,
             String keyword, String roleName) {

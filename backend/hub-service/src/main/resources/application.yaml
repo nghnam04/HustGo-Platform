@@ -18,6 +18,10 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
+services:
+  auth:
+    url: ${AUTH_SERVICE_URL:http://localhost:8080}
+
 eureka:
   client:
     service-url:

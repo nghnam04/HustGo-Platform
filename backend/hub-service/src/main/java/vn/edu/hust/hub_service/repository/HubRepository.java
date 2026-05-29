@@ -1,13 +1,14 @@
 package vn.edu.hust.hub_service.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import vn.edu.hust.hub_service.entity.Hub;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-public interface HubRepository extends JpaRepository<Hub, String> {
+public interface HubRepository extends JpaRepository<Hub, String>, JpaSpecificationExecutor<Hub> {
     boolean existsByIdAndActiveTrue(String id);
 
     boolean existsByCode(String code);

@@ -3,9 +3,17 @@ package vn.edu.hust.hub_service.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+import vn.edu.hust.base_domain.dto.PageResponse;
 import vn.edu.hust.hub_service.dto.HubRequest;
 import vn.edu.hust.hub_service.dto.HubResponse;
 import vn.edu.hust.hub_service.entity.Hub;
@@ -15,7 +23,6 @@ import vn.edu.hust.hub_service.repository.HubRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -23,15 +30,60 @@ import java.util.stream.Collectors;
 public class HubService {
 
     private final HubRepository hubRepository;
+    private final WebClient.Builder webClientBuilder;
+
+    @Value("${services.auth.url}")
+    private String authServiceUrl;
 
     public boolean existsById(String id) {
         return hubRepository.existsByIdAndActiveTrue(id);
     }
 
-    public List<HubResponse> getAllHubs() {
-        return hubRepository.findAll().stream()
+    public PageResponse<HubResponse> getAllHubs(
+            int pageNo,
+            int pageSize,
+            String sortBy,
+            String sortDir,
+            String keyword
+    ) {
+
+        Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name())
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageable = PageRequest.of(pageNo, pageSize, sort);
+
+        Specification<Hub> spec = Specification.allOf();
+
+        if (keyword != null && !keyword.isBlank()) {
+
+            spec = spec.and((root, query, cb) -> cb.or(
+                    cb.like(cb.lower(root.get("name")),
+                            "%" + keyword.toLowerCase() + "%"),
+
+                    cb.like(cb.lower(root.get("code")),
+                            "%" + keyword.toLowerCase() + "%"),
+
+                    cb.like(cb.lower(root.get("address")),
+                            "%" + keyword.toLowerCase() + "%")
+            ));
+        }
+
+        Page<Hub> page = hubRepository.findAll(spec, pageable);
+
+        List<HubResponse> content = page.getContent()
+                .stream()
                 .map(HubMapper::toResponse)
-                .collect(Collectors.toList());
+                .toList();
+
+        return new PageResponse<>(
+                content,
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isLast()
+        );
     }
 
     private Hub getHubEntityById(String id) {
@@ -57,6 +109,13 @@ public class HubService {
     public HubResponse assignManager(String hubId, String managerId) {
 
         Hub hub = getHubEntityById(hubId);
+
+        if (!verifyHubAdmin(managerId)) {
+            throw new HustGoException(
+                    HttpStatus.BAD_REQUEST,
+                    "User không tồn tại hoặc không phải HUB_ADMIN"
+            );
+        }
 
         if (hubRepository.existsByManagerId(managerId)) {
             throw new HustGoException(HttpStatus.CONFLICT, "Hub admin đã được gán cho hub khác");
@@ -102,6 +161,35 @@ public class HubService {
                         new HustGoException(HttpStatus.NOT_FOUND, "Hub admin chưa được gán kho"));
 
         return HubMapper.toResponse(hub);
+    }
+
+    // HELPERS
+    private boolean verifyHubAdmin(String managerId) {
+
+        try {
+
+            String url =
+                    authServiceUrl + "/api/users/internal/" + managerId + "/hub-admin";
+
+            log.info("Calling URL: {}", url);
+
+            Boolean result = webClientBuilder.build()
+                    .get()
+                    .uri(url)
+                    .retrieve()
+                    .bodyToMono(Boolean.class)
+                    .block();
+
+            log.info("Verify result: {}", result);
+
+            return Boolean.TRUE.equals(result);
+
+        } catch (Exception e) {
+
+            log.error("VERIFY HUB ADMIN ERROR", e);
+
+            return false;
+        }
     }
 
     // ================= SCHEDULE CLEANUP =================

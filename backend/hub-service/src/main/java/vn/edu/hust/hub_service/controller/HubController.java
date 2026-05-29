@@ -6,12 +6,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import vn.edu.hust.base_domain.dto.PageResponse;
 import vn.edu.hust.hub_service.dto.AssignManagerRequest;
 import vn.edu.hust.hub_service.dto.HubRequest;
 import vn.edu.hust.hub_service.dto.HubResponse;
 import vn.edu.hust.hub_service.service.HubService;
-
-import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -28,8 +27,22 @@ public class HubController {
     // Lấy danh sách tất cả Hub
     @GetMapping("/api/hubs")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public ResponseEntity<List<HubResponse>> getAllHubs() {
-        return ResponseEntity.ok(hubService.getAllHubs());
+    public ResponseEntity<PageResponse<HubResponse>> getAllHubs(
+            @RequestParam(defaultValue = "0") int pageNo,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(required = false) String keyword
+    ) {
+        return ResponseEntity.ok(
+                hubService.getAllHubs(
+                        pageNo,
+                        pageSize,
+                        sortBy,
+                        sortDir,
+                        keyword
+                )
+        );
     }
 
     // Xem chi tiết 1 Hub

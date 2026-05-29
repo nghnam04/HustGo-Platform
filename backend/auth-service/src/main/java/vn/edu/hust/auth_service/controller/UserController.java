@@ -51,6 +51,12 @@ public class UserController {
         return ResponseEntity.ok("Thay đổi mật khẩu thành công!");
     }
 
+    // Kiểm tra role Hub Admin của user để gán cho Hub
+    @GetMapping("/internal/{id}/hub-admin")
+    public ResponseEntity<Boolean> isHubAdmin(@PathVariable String id) {
+        return ResponseEntity.ok(userService.isHubAdmin(id));
+    }
+
     @GetMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<PageResponse<UserResponse>> getAllUsers(

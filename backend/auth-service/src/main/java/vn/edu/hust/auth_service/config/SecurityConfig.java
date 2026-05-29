@@ -36,6 +36,9 @@ public class SecurityConfig {
                             // Auth
                             .requestMatchers("/api/auth/**").permitAll()
 
+                            // Internal
+                            .requestMatchers("/api/users/internal/**").permitAll()
+
                             // Authenticate
                             .anyRequest().authenticated()
                     )
