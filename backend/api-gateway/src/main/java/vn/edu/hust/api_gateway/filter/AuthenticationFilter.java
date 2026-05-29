@@ -20,7 +20,10 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     private static final List<String> OPEN_API_ENDPOINTS = List.of(
             "/api/auth/login",
             "/api/auth/register",
-            "/api/auth/social-login"
+            "/api/auth/social-login",
+
+            // MOMO CALLBACK
+            "/api/payments/callback"
     );
 
     public AuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
