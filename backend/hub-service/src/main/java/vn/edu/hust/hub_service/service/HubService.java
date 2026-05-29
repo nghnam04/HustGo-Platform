@@ -1,7 +1,10 @@
 package vn.edu.hust.hub_service.service;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import vn.edu.hust.hub_service.dto.HubRequest;
 import vn.edu.hust.hub_service.dto.HubResponse;
@@ -10,9 +13,11 @@ import vn.edu.hust.hub_service.exception.HustGoException;
 import vn.edu.hust.hub_service.mapper.HubMapper;
 import vn.edu.hust.hub_service.repository.HubRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class HubService {
@@ -97,5 +102,37 @@ public class HubService {
                         new HustGoException(HttpStatus.NOT_FOUND, "Hub admin chưa được gán kho"));
 
         return HubMapper.toResponse(hub);
+    }
+
+    // ================= SCHEDULE CLEANUP =================
+    @Transactional
+    @Scheduled(cron = "0 30 1 * * *") // 1h30 sáng mỗi ngày
+    public void cleanupInactiveHubs() {
+
+        log.info("Bắt đầu dọn dẹp Hub không hoạt động");
+
+        try {
+
+            // Hub inactive quá 6 tháng
+            LocalDateTime cutoffDate = LocalDateTime.now().minusMonths(6);
+
+            List<Hub> hubsToDelete =
+                    hubRepository.findByActiveFalseAndUpdatedAtBefore(cutoffDate);
+
+            if (hubsToDelete.isEmpty()) {
+                log.info("Không có Hub inactive nào quá 6 tháng để xóa.");
+                return;
+            }
+
+            int count = hubsToDelete.size();
+
+            hubRepository.deleteByActiveFalseAndUpdatedAtBefore(cutoffDate);
+
+            log.info("Đã xóa {} Hub inactive quá 6 tháng", count);
+
+        } catch (Exception e) {
+
+            log.error("Lỗi khi cleanup Hub inactive", e);
+        }
     }
 }

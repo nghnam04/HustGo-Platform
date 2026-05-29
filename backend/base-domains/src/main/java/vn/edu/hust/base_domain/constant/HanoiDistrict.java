@@ -6,7 +6,7 @@ import java.util.Arrays;
 
 @Getter
 public enum HanoiDistrict {
-    // 12 quận nội thanhf
+    // 12 quận nội thành
     BA_DINH("Quận Ba Đình", true),
     HOAN_KIEM("Quận Hoàn Kiếm", true),
     TAY_HO("Quận Tây Hồ", true),

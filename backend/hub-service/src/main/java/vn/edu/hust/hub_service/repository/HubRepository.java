@@ -3,6 +3,8 @@ package vn.edu.hust.hub_service.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import vn.edu.hust.hub_service.entity.Hub;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface HubRepository extends JpaRepository<Hub, String> {
@@ -15,4 +17,8 @@ public interface HubRepository extends JpaRepository<Hub, String> {
     boolean existsByManagerId(String managerId);
 
     Optional<Hub> findByManagerIdAndActiveTrue(String managerId);
+
+    List<Hub> findByActiveFalseAndUpdatedAtBefore(LocalDateTime cutoffDate);
+
+    void deleteByActiveFalseAndUpdatedAtBefore(LocalDateTime cutoffDate);
 }
