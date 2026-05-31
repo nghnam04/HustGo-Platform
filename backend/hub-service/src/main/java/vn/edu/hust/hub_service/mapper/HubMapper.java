@@ -27,7 +27,7 @@ public class HubMapper {
                 hub.getName(),
                 hub.getAddress(),
                 hub.getWard(),
-                hub.getDistrict(),
+                hub.getDistrict().getDisplayName(),
                 hub.getProvince(),
                 hub.getLat(),
                 hub.getLng(),

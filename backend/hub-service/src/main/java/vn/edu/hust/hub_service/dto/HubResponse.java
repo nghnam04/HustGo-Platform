@@ -1,7 +1,5 @@
 package vn.edu.hust.hub_service.dto;
 
-import vn.edu.hust.base_domain.constant.HanoiDistrict;
-
 import java.time.LocalDateTime;
 
 public record HubResponse(
@@ -12,7 +10,7 @@ public record HubResponse(
 
         String address,
         String ward,
-        HanoiDistrict district,
+        String district,
         String province,
 
         Double lat,
