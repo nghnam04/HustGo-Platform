@@ -15,15 +15,18 @@ import vn.edu.hust.hub_service.service.HubService;
 @RestController
 @RequiredArgsConstructor
 public class HubController {
+
     private final HubService hubService;
 
-    // Internal API
+    // ==================== Internal API ====================
+
     @GetMapping("/api/internal/hubs/{id}/exists")
     public boolean checkExists(@PathVariable String id) {
         return hubService.existsById(id);
     }
 
-    // Super Admin API
+    // ==================== Super Admin API ====================
+
     // Lấy danh sách tất cả Hub
     @GetMapping("/api/hubs")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
@@ -35,13 +38,7 @@ public class HubController {
             @RequestParam(required = false) String keyword
     ) {
         return ResponseEntity.ok(
-                hubService.getAllHubs(
-                        pageNo,
-                        pageSize,
-                        sortBy,
-                        sortDir,
-                        keyword
-                )
+                hubService.getAllHubs(pageNo, pageSize, sortBy, sortDir, keyword)
         );
     }
 
@@ -55,36 +52,50 @@ public class HubController {
     // Tạo mới Hub
     @PostMapping("/api/hubs")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public ResponseEntity<HubResponse> createHub(@RequestBody HubRequest request) {
+    public ResponseEntity<HubResponse> createHub(
+            @RequestBody HubRequest request,
+            @AuthenticationPrincipal String actorId
+    ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(hubService.createHub(request));
+                .body(hubService.createHub(request, actorId));
     }
 
+    // Gán quản lý cho Hub
     @PatchMapping("/api/hubs/{id}/assign-manager")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<HubResponse> assignManager(
             @PathVariable String id,
-            @RequestBody AssignManagerRequest request
+            @RequestBody AssignManagerRequest request,
+            @AuthenticationPrincipal String actorId
     ) {
         return ResponseEntity.ok(
-                hubService.assignManager(id, request.managerId())
+                hubService.assignManager(id, request.managerId(), actorId)
         );
     }
 
     // Cập nhật Hub
     @PutMapping("/api/hubs/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public ResponseEntity<HubResponse> updateHub(@PathVariable String id, @RequestBody HubRequest request) {
-        return ResponseEntity.ok(hubService.updateHub(id, request));
+    public ResponseEntity<HubResponse> updateHub(
+            @PathVariable String id,
+            @RequestBody HubRequest request,
+            @AuthenticationPrincipal String actorId
+    ) {
+        return ResponseEntity.ok(hubService.updateHub(id, request, actorId));
     }
 
     // Xóa Hub (Soft Delete)
     @DeleteMapping("/api/hubs/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public ResponseEntity<String> deleteHub(@PathVariable String id) {
-        hubService.deleteHub(id);
+    public ResponseEntity<String> deleteHub(
+            @PathVariable String id,
+            @AuthenticationPrincipal String actorId
+    ) {
+        hubService.deleteHub(id, actorId);
         return ResponseEntity.ok("Đã xoá thành công Hub: " + id);
     }
+
+    // ==================== Hub Admin API ====================
 
     @GetMapping("/api/hubs/me")
     @PreAuthorize("hasRole('HUB_ADMIN')")

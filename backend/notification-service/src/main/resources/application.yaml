@@ -23,6 +23,7 @@ app:
     topics:
       order-events: order-events
       payment-events: payment-events
+      hub-events: hub-events
 
 eureka:
   client:

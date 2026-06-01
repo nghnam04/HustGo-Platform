@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import vn.edu.hust.base_domain.dto.HubEvent;
 import vn.edu.hust.base_domain.dto.OrderStatusChangedEvent;
 import vn.edu.hust.base_domain.dto.PaymentEvent;
 import vn.edu.hust.notification_service.dto.NotificationResponse;
@@ -15,6 +16,8 @@ import vn.edu.hust.notification_service.dto.NotificationResponse;
 public class NotificationConsumer {
 
     private final SimpMessagingTemplate messagingTemplate;
+
+    // ================= ORDER =================
 
     @KafkaListener(topics = "${app.kafka.topics.order-events:order-events}", groupId = "notification-group")
     public void consumeOrderEvent(OrderStatusChangedEvent event) {
@@ -34,6 +37,8 @@ public class NotificationConsumer {
             log.warn("Không tìm thấy customerId trong OrderStatusChangedEvent, không thể gửi WebSocket!");
         }
     }
+
+    // ================= PAYMENT =================
 
     @KafkaListener(topics = "${app.kafka.topics.payment-events:payment-events}", groupId = "notification-group")
     public void consumePayment(PaymentEvent event) {
@@ -55,5 +60,44 @@ public class NotificationConsumer {
         } else {
             log.warn("Không tìm thấy customerId trong PaymentEvent, không thể gửi WebSocket!");
         }
+    }
+
+    // ================= HUB =================
+
+    @KafkaListener(
+            topics = "${app.kafka.topics.hub-events:hub-events}",
+            groupId = "notification-group",
+            containerFactory = "hubKafkaListenerContainerFactory"
+    )
+    public void consumeHubEvent(HubEvent event) {
+        log.info("Nhận sự kiện Hub => hubId: {}, action: {}, actor: {}",
+                event.hubId(), event.action(), event.actorId());
+
+        String message = buildHubMessage(event);
+
+        NotificationResponse response = NotificationResponse.builder()
+                .type("HUB")
+                .status(event.action())
+                .message(message)
+                .data(event)
+                .build();
+
+        if (event.actorId() != null) {
+            messagingTemplate.convertAndSend("/topic/hubs/" + event.actorId(), response);
+            log.info("Đã đẩy thông báo WebSocket tới /topic/hubs/{}", event.actorId());
+        } else {
+            log.warn("Không tìm thấy actorId trong HubEvent, không thể gửi WebSocket!");
+        }
+    }
+
+    private String buildHubMessage(HubEvent event) {
+        String hubInfo = event.hubName() + " (" + event.hubCode() + ")";
+        return switch (event.action()) {
+            case "CREATED" -> "Hub " + hubInfo + " đã được tạo thành công";
+            case "UPDATED" -> "Hub " + hubInfo + " đã được cập nhật";
+            case "DELETED" -> "Hub " + hubInfo + " đã bị vô hiệu hóa";
+            case "MANAGER_ASSIGNED" -> "Hub " + hubInfo + " đã được gán quản lý mới";
+            default -> "Hub " + hubInfo + " có cập nhật mới: " + event.action();
+        };
     }
 }

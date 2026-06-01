@@ -18,9 +18,24 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
+  # Kafka Producer
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+
 services:
   auth:
     url: ${AUTH_SERVICE_URL:http://localhost:8080}
+
+# topic name
+app:
+  kafka:
+    topics:
+      hub-events: hub-events
 
 eureka:
   client:

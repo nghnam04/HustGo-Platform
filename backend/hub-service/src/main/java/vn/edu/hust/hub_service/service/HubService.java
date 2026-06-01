@@ -13,11 +13,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import vn.edu.hust.base_domain.dto.HubEvent;
 import vn.edu.hust.base_domain.dto.PageResponse;
 import vn.edu.hust.hub_service.dto.HubRequest;
 import vn.edu.hust.hub_service.dto.HubResponse;
 import vn.edu.hust.hub_service.entity.Hub;
 import vn.edu.hust.hub_service.exception.HustGoException;
+import vn.edu.hust.hub_service.kafka.HubProducer;
 import vn.edu.hust.hub_service.mapper.HubMapper;
 import vn.edu.hust.hub_service.repository.HubRepository;
 
@@ -31,6 +33,7 @@ public class HubService {
 
     private final HubRepository hubRepository;
     private final WebClient.Builder webClientBuilder;
+    private final HubProducer hubProducer;
 
     @Value("${services.auth.url}")
     private String authServiceUrl;
@@ -46,7 +49,6 @@ public class HubService {
             String sortDir,
             String keyword
     ) {
-
         Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name())
                 ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
@@ -56,14 +58,11 @@ public class HubService {
         Specification<Hub> spec = Specification.allOf();
 
         if (keyword != null && !keyword.isBlank()) {
-
             spec = spec.and((root, query, cb) -> cb.or(
                     cb.like(cb.lower(root.get("name")),
                             "%" + keyword.toLowerCase() + "%"),
-
                     cb.like(cb.lower(root.get("code")),
                             "%" + keyword.toLowerCase() + "%"),
-
                     cb.like(cb.lower(root.get("address")),
                             "%" + keyword.toLowerCase() + "%")
             ));
@@ -95,18 +94,21 @@ public class HubService {
         return HubMapper.toResponse(getHubEntityById(id));
     }
 
-    public HubResponse createHub(HubRequest request) {
+    public HubResponse createHub(HubRequest request, String actorId) {
 
         if (hubRepository.existsByCode(request.code())) {
             throw new HustGoException(HttpStatus.CONFLICT, "Mã Hub đã tồn tại " + request.code());
         }
 
         Hub hub = HubMapper.toEntity(request);
+        Hub saved = hubRepository.save(hub);
 
-        return HubMapper.toResponse(hubRepository.save(hub));
+        hubProducer.publishHubEvent(buildEvent(saved, "CREATED", actorId));
+
+        return HubMapper.toResponse(saved);
     }
 
-    public HubResponse assignManager(String hubId, String managerId) {
+    public HubResponse assignManager(String hubId, String managerId, String actorId) {
 
         Hub hub = getHubEntityById(hubId);
 
@@ -122,11 +124,14 @@ public class HubService {
         }
 
         hub.setManagerId(managerId);
+        Hub saved = hubRepository.save(hub);
 
-        return HubMapper.toResponse(hubRepository.save(hub));
+        hubProducer.publishHubEvent(buildEvent(saved, "MANAGER_ASSIGNED", actorId));
+
+        return HubMapper.toResponse(saved);
     }
 
-    public HubResponse updateHub(String id, HubRequest details) {
+    public HubResponse updateHub(String id, HubRequest details, String actorId) {
         Hub hub = getHubEntityById(id);
 
         if (!hub.getCode().equals(details.code())) {
@@ -145,17 +150,22 @@ public class HubService {
         hub.setLng(details.lng());
         hub.setActive(details.active());
 
-        return HubMapper.toResponse(hubRepository.save(hub));
+        Hub saved = hubRepository.save(hub);
+
+        hubProducer.publishHubEvent(buildEvent(saved, "UPDATED", actorId));
+
+        return HubMapper.toResponse(saved);
     }
 
-    public void deleteHub(String id) {
+    public void deleteHub(String id, String actorId) {
         Hub hub = getHubEntityById(id);
         hub.setActive(false);
-        hubRepository.save(hub);
+        Hub saved = hubRepository.save(hub);
+
+        hubProducer.publishHubEvent(buildEvent(saved, "DELETED", actorId));
     }
 
     public HubResponse getHubByManager(String managerId) {
-
         Hub hub = hubRepository.findByManagerIdAndActiveTrue(managerId)
                 .orElseThrow(() ->
                         new HustGoException(HttpStatus.NOT_FOUND, "Hub admin chưa được gán kho"));
@@ -163,14 +173,11 @@ public class HubService {
         return HubMapper.toResponse(hub);
     }
 
-    // HELPERS
+    // ================= HELPERS =================
+
     private boolean verifyHubAdmin(String managerId) {
-
         try {
-
-            String url =
-                    authServiceUrl + "/api/users/internal/" + managerId + "/hub-admin";
-
+            String url = authServiceUrl + "/api/users/internal/" + managerId + "/hub-admin";
             log.info("Calling URL: {}", url);
 
             Boolean result = webClientBuilder.build()
@@ -181,18 +188,28 @@ public class HubService {
                     .block();
 
             log.info("Verify result: {}", result);
-
             return Boolean.TRUE.equals(result);
 
         } catch (Exception e) {
-
             log.error("VERIFY HUB ADMIN ERROR", e);
-
             return false;
         }
     }
 
+    private HubEvent buildEvent(Hub hub, String action, String actorId) {
+        return new HubEvent(
+                hub.getId(),
+                hub.getCode(),
+                hub.getName(),
+                action,
+                hub.getManagerId(),
+                actorId,
+                LocalDateTime.now()
+        );
+    }
+
     // ================= SCHEDULE CLEANUP =================
+
     @Transactional
     @Scheduled(cron = "0 30 1 * * *") // 1h30 sáng mỗi ngày
     public void cleanupInactiveHubs() {
@@ -200,12 +217,8 @@ public class HubService {
         log.info("Bắt đầu dọn dẹp Hub không hoạt động");
 
         try {
-
-            // Hub inactive quá 6 tháng
             LocalDateTime cutoffDate = LocalDateTime.now().minusMonths(6);
-
-            List<Hub> hubsToDelete =
-                    hubRepository.findByActiveFalseAndUpdatedAtBefore(cutoffDate);
+            List<Hub> hubsToDelete = hubRepository.findByActiveFalseAndUpdatedAtBefore(cutoffDate);
 
             if (hubsToDelete.isEmpty()) {
                 log.info("Không có Hub inactive nào quá 6 tháng để xóa.");
@@ -213,13 +226,10 @@ public class HubService {
             }
 
             int count = hubsToDelete.size();
-
             hubRepository.deleteByActiveFalseAndUpdatedAtBefore(cutoffDate);
-
             log.info("Đã xóa {} Hub inactive quá 6 tháng", count);
 
         } catch (Exception e) {
-
             log.error("Lỗi khi cleanup Hub inactive", e);
         }
     }
