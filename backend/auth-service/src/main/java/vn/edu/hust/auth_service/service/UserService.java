@@ -19,10 +19,13 @@ import vn.edu.hust.auth_service.dto.UserResponse;
 import vn.edu.hust.auth_service.entity.Role;
 import vn.edu.hust.auth_service.entity.User;
 import vn.edu.hust.auth_service.exception.HustGoException;
+import vn.edu.hust.auth_service.kafka.UserProducer;
 import vn.edu.hust.auth_service.repository.RoleRepository;
 import vn.edu.hust.auth_service.repository.UserRepository;
 import vn.edu.hust.base_domain.dto.PageResponse;
+import vn.edu.hust.base_domain.dto.UserEvent;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -36,6 +39,7 @@ public class UserService {
     private final RoleRepository roleRepository;
     private final CloudinaryService cloudinaryService;
     private final PasswordEncoder passwordEncoder;
+    private final UserProducer userProducer;          // << THÊM MỚI
 
     public UserProfileResponse getMyProfile(String userId) {
         User user = userRepository.findById(userId)
@@ -83,6 +87,16 @@ public class UserService {
                 .map(role -> role.getName().name())
                 .collect(Collectors.toSet());
 
+        // << THÊM MỚI — thông báo cập nhật hồ sơ
+        userProducer.publishUserEvent(new UserEvent(
+                savedUser.getId(),
+                savedUser.getUsername(),
+                "PROFILE_UPDATED",
+                savedUser.getId(),
+                "Thông tin hồ sơ của bạn đã được cập nhật thành công. Nếu không phải bạn, hãy liên hệ hỗ trợ ngay",
+                LocalDateTime.now()
+        ));
+
         return new UserProfileResponse(
                 savedUser.getId(),
                 savedUser.getUsername(),
@@ -99,17 +113,14 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new HustGoException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng với ID: " + userId));
 
-        // Kiểm tra mật khẩu cũ
         if (!passwordEncoder.matches(request.oldPassword(), user.getPassword())) {
             throw new HustGoException(HttpStatus.BAD_REQUEST, "Mật khẩu cũ không chính xác");
         }
 
-        // Kiểm tra mật khẩu mới không được trùng mật khẩu cũ
         if (passwordEncoder.matches(request.newPassword(), user.getPassword())) {
             throw new HustGoException(HttpStatus.BAD_REQUEST, "Mật khẩu mới không được trùng với mật khẩu hiện tại");
         }
 
-        // Kiểm tra mật khẩu mới và xác nhận mật khẩu có trùng nhau không
         if (!request.newPassword().equals(request.confirmPassword())) {
             throw new HustGoException(HttpStatus.BAD_REQUEST, "Xác nhận mật khẩu mới không trùng khớp");
         }
@@ -117,16 +128,22 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(request.newPassword()));
         userRepository.save(user);
         log.info("Người dùng với ID {} đã đổi mật khẩu thành công", userId);
+
+        // << THÊM MỚI — thông báo đổi mật khẩu
+        userProducer.publishUserEvent(new UserEvent(
+                user.getId(),
+                user.getUsername(),
+                "PASSWORD_CHANGED",
+                user.getId(),
+                "Mật khẩu tài khoản của bạn vừa được thay đổi thành công. Nếu không phải bạn, hãy liên hệ hỗ trợ ngay",
+                LocalDateTime.now()
+        ));
     }
 
     public boolean isHubAdmin(String userId) {
+        User user = userRepository.findById(userId).orElse(null);
 
-        User user = userRepository.findById(userId)
-                .orElse(null);
-
-        if (user == null) {
-            return false;
-        }
+        if (user == null) return false;
 
         return user.getRoles().stream()
                 .anyMatch(role -> role.getName() == RoleEnum.HUB_ADMIN);
@@ -141,7 +158,6 @@ public class UserService {
                 : Sort.by(sortBy).descending();
 
         Pageable pageable = PageRequest.of(pageNo, pageSize, sort);
-
         Specification<User> spec = Specification.allOf();
 
         if (keyword != null && !keyword.isEmpty()) {
@@ -153,7 +169,8 @@ public class UserService {
         }
 
         if (roleName != null && !roleName.isEmpty()) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.join("roles").get("name"), RoleEnum.valueOf(roleName.toUpperCase())));
+            spec = spec.and((root, query, cb) ->
+                    cb.equal(root.join("roles").get("name"), RoleEnum.valueOf(roleName.toUpperCase())));
         }
 
         Page<User> page = userRepository.findAll(spec, pageable);
@@ -175,36 +192,20 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponse updateUserRoles(String id, Set<RoleEnum> roleEnums) {
+    public UserResponse updateUserRoles(String id, Set<RoleEnum> roleEnums, String performedBy) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new HustGoException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
 
-        // Không cho chỉnh sửa tài khoản SUPER_ADMIN
-        if (user.getRoles().stream()
-                .anyMatch(r -> r.getName() == RoleEnum.SUPER_ADMIN)) {
-
-            throw new HustGoException(
-                    HttpStatus.FORBIDDEN,
-                    "Không thể sửa đổi vai trò của Super Admin"
-            );
+        if (user.getRoles().stream().anyMatch(r -> r.getName() == RoleEnum.SUPER_ADMIN)) {
+            throw new HustGoException(HttpStatus.FORBIDDEN, "Không thể sửa đổi vai trò của Super Admin");
         }
 
-        // Không cho gán role SUPER_ADMIN
         if (roleEnums.contains(RoleEnum.SUPER_ADMIN)) {
-
-            throw new HustGoException(
-                    HttpStatus.FORBIDDEN,
-                    "Không thể cấp quyền SUPER_ADMIN"
-            );
+            throw new HustGoException(HttpStatus.FORBIDDEN, "Không thể cấp quyền SUPER_ADMIN");
         }
 
-        // Bắt buộc phải có ít nhất 1 role
         if (roleEnums.isEmpty()) {
-
-            throw new HustGoException(
-                    HttpStatus.BAD_REQUEST,
-                    "Người dùng phải có ít nhất một vai trò"
-            );
+            throw new HustGoException(HttpStatus.BAD_REQUEST, "Người dùng phải có ít nhất một vai trò");
         }
 
         Set<Role> roles = roleEnums.stream()
@@ -213,11 +214,36 @@ public class UserService {
                 .collect(Collectors.toSet());
 
         user.setRoles(roles);
-        return mapToResponse(userRepository.save(user));
+        User saved = userRepository.save(user);
+
+        String newRolesStr = roleEnums.stream()
+                .map(RoleEnum::name)
+                .collect(Collectors.joining(", "));
+
+        userProducer.publishUserEvent(new UserEvent(
+                saved.getId(),
+                saved.getUsername(),
+                "ROLE_UPDATED",
+                performedBy,
+                "Vai trò tài khoản của bạn đã được cập nhật thành: " + newRolesStr,
+                LocalDateTime.now()
+        ));
+
+        userProducer.publishUserEvent(new UserEvent(
+                performedBy,
+                "SUPER ADMIN",
+                "USER_ROLE_UPDATED",
+                performedBy,
+                "Bạn đã cập nhật vai trò cho user " + saved.getUsername() +
+                        " thành: " + newRolesStr,
+                LocalDateTime.now()
+        ));
+
+        return mapToResponse(saved);
     }
 
     @Transactional
-    public void deleteUser(String id) {
+    public void deleteUser(String id, String performedBy) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new HustGoException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
 
@@ -225,7 +251,19 @@ public class UserService {
             throw new HustGoException(HttpStatus.FORBIDDEN, "Không thể xóa tài khoản Super Admin");
         }
 
+        String username = user.getUsername();
         userRepository.delete(user);
+
+        log.info("User {} đã bị xóa bởi {}", username, performedBy);
+
+        userProducer.publishUserEvent(new UserEvent(
+                performedBy,
+                "SUPER ADMIN",
+                "USER_DELETED",
+                performedBy,
+                "Bạn đã xóa tài khoản user: " + username,
+                LocalDateTime.now()
+        ));
     }
 
     private UserResponse mapToResponse(User user) {

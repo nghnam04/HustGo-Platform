@@ -79,14 +79,18 @@ public class UserController {
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<UserResponse> updateRoles(
             @PathVariable String id,
-            @RequestBody Set<RoleEnum> roles) {
-        return ResponseEntity.ok(userService.updateUserRoles(id, roles));
+            @RequestBody Set<RoleEnum> roles,
+            @AuthenticationPrincipal String performedBy) {
+        return ResponseEntity.ok(userService.updateUserRoles(id, roles, performedBy));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public ResponseEntity<String> deleteUser(@PathVariable String id) {
-        userService.deleteUser(id);
+    public ResponseEntity<String> deleteUser(
+            @PathVariable String id,
+            @AuthenticationPrincipal String performedBy) {
+
+        userService.deleteUser(id, performedBy);
         return ResponseEntity.ok("Đã xoá thành công User: " + id);
     }
 }

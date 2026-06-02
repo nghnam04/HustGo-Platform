@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import vn.edu.hust.base_domain.dto.HubEvent;
 import vn.edu.hust.base_domain.dto.OrderStatusChangedEvent;
 import vn.edu.hust.base_domain.dto.PaymentEvent;
+import vn.edu.hust.base_domain.dto.UserEvent;
 import vn.edu.hust.notification_service.dto.NotificationResponse;
 
 @Service
@@ -87,6 +88,48 @@ public class NotificationConsumer {
             log.info("Đã đẩy thông báo WebSocket tới /topic/hubs/{}", event.actorId());
         } else {
             log.warn("Không tìm thấy actorId trong HubEvent, không thể gửi WebSocket!");
+        }
+    }
+
+    // ================= USER =================
+
+    @KafkaListener(
+            topics = "${app.kafka.topics.user-events:user-events}",
+            groupId = "notification-group",
+            containerFactory = "userKafkaListenerContainerFactory"
+    )
+    public void consumeUserEvent(UserEvent event) {
+
+        log.info(
+                "Nhận UserEvent => userId: {}, action: {}",
+                event.userId(),
+                event.action()
+        );
+
+        NotificationResponse response = NotificationResponse.builder()
+                .type("USER")
+                .status(event.action())
+                .message(event.message())
+                .data(event)
+                .build();
+
+        if (event.userId() != null) {
+
+            messagingTemplate.convertAndSend(
+                    "/topic/users/" + event.userId(),
+                    response
+            );
+
+            log.info(
+                    "Đã đẩy WebSocket tới /topic/users/{}",
+                    event.userId()
+            );
+
+        } else {
+
+            log.warn(
+                    "UserEvent không có userId, không thể gửi WebSocket"
+            );
         }
     }
 

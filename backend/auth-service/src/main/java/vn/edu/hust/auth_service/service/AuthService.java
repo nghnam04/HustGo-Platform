@@ -19,11 +19,14 @@ import vn.edu.hust.auth_service.dto.RegisterRequest;
 import vn.edu.hust.auth_service.dto.SocialLoginRequest;
 import vn.edu.hust.auth_service.entity.Role;
 import vn.edu.hust.auth_service.entity.User;
+import vn.edu.hust.auth_service.kafka.UserProducer;
 import vn.edu.hust.auth_service.repository.RoleRepository;
 import vn.edu.hust.auth_service.repository.UserRepository;
 import vn.edu.hust.auth_service.security.JwtTokenProvider;
 import vn.edu.hust.auth_service.security.TokenBlacklistService;
+import vn.edu.hust.base_domain.dto.UserEvent;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -40,6 +43,7 @@ public class AuthService {
     private final TokenBlacklistService tokenBlacklistService;
     private final RoleRepository roleRepository;
     private final WebClient webClient;
+    private final UserProducer userProducer;          // << THÊM MỚI
 
     @Value("${app.google.client-id}")
     private String googleClientId;
@@ -60,7 +64,19 @@ public class AuthService {
         User user = userRepository.findByEmailOrUsername(identifier, identifier)
                 .orElseThrow(() -> new RuntimeException("Sai tài khoản hoặc mật khẩu"));
 
-        return buildAuthResponse(user);
+        AuthResponse response = buildAuthResponse(user);
+
+        // << THÊM MỚI — thông báo đăng nhập thành công
+        userProducer.publishUserEvent(new UserEvent(
+                user.getId(),
+                user.getUsername(),
+                "LOGGED_IN",
+                user.getId(),
+                "Bạn vừa đăng nhập thành công vào hệ thống HUSTGo",
+                LocalDateTime.now()
+        ));
+
+        return response;
     }
 
     @Transactional
@@ -86,14 +102,25 @@ public class AuthService {
                 log.info("Đăng nhập Google thành công cho email: {}", email);
 
                 User user = processSocialUser(email, name, picture, providerId, request.provider());
-                return buildAuthResponse(user);
+                AuthResponse response = buildAuthResponse(user);
+
+                // << THÊM MỚI — thông báo đăng nhập social
+                userProducer.publishUserEvent(new UserEvent(
+                        user.getId(),
+                        user.getUsername(),
+                        "LOGGED_IN",
+                        user.getId(),
+                        "Bạn vừa đăng nhập bằng Google vào hệ thống HUSTGo",
+                        LocalDateTime.now()
+                ));
+
+                return response;
             } catch (Exception e) {
                 log.error("Lỗi xác thực Google API: {}", e.getMessage());
                 throw new RuntimeException("Xác thực đối tác Google thất bại");
             }
         } else if (request.provider() == AuthProvider.FACEBOOK) {
             try {
-                // xác thực bằng acccess token của app
                 String appAccessToken = facebookAppId + "|" + facebookAppSecret;
                 Map<?, ?> debugResponse = webClient.get()
                         .uri("https://graph.facebook.com/debug_token?input_token={input_token}&access_token={access_token}",
@@ -107,7 +134,6 @@ public class AuthService {
                     throw new RuntimeException("Token Facebook không hợp lệ hoặc không thuộc ứng dụng này");
                 }
 
-                // lấy thông tin người dùng
                 Map<?, ?> fbResponse = webClient.get()
                         .uri(uriBuilder -> uriBuilder
                                 .scheme("https")
@@ -132,7 +158,19 @@ public class AuthService {
                 log.info("Đăng nhập Facebook thành công cho App ID: {} (User: {})", facebookAppId, providerId);
 
                 User user = processSocialUser(email, name, picture, providerId, request.provider());
-                return buildAuthResponse(user);
+                AuthResponse response = buildAuthResponse(user);
+
+                // << THÊM MỚI — thông báo đăng nhập social
+                userProducer.publishUserEvent(new UserEvent(
+                        user.getId(),
+                        user.getUsername(),
+                        "LOGGED_IN",
+                        user.getId(),
+                        "Bạn vừa đăng nhập bằng Facebook vào hệ thống HUSTGo",
+                        LocalDateTime.now()
+                ));
+
+                return response;
             } catch (Exception e) {
                 log.error("Lỗi xác thực Facebook: {}", e.getMessage());
                 throw new RuntimeException("Xác thực Facebook thất bại");
@@ -191,7 +229,18 @@ public class AuthService {
                 .roles(Set.of(role))
                 .build();
 
-        userRepository.save(user);
+        User saved = userRepository.save(user);
+
+        // << THÊM MỚI — thông báo đăng ký thành công
+        userProducer.publishUserEvent(new UserEvent(
+                saved.getId(),
+                saved.getUsername(),
+                "REGISTERED",
+                saved.getId(),
+                "Chào mừng " + saved.getFullName() + " đã đăng ký tài khoản HUSTGo thành công!",
+                LocalDateTime.now()
+        ));
+
         return "Đăng ký thành công";
     }
 
@@ -221,7 +270,6 @@ public class AuthService {
 
     private String extractFacebookPicture(Map<?, ?> fbResponse) {
         try {
-            // Sử dụng trực tiếp facebookId để sinh link tĩnh
             String facebookId = (String) fbResponse.get("id");
             if (facebookId != null) {
                 return "https://graph.facebook.com/" + facebookId + "/picture?type=large";
