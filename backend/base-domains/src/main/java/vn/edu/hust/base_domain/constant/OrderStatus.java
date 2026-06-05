@@ -9,5 +9,6 @@ public enum OrderStatus {
     PICKING,
     DELIVERING,
     COMPLETED,
-    CANCELLED
+    CANCELLED,
+    RETURNING
 }
