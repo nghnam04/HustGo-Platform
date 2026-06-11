@@ -44,6 +44,13 @@ spring:
               filters:
                 - name: AuthenticationFilter
 
+            - id: feedback-service
+              uri: lb://order-service
+              predicates:
+                - Path=/api/feedbacks/**
+              filters:
+                - name: AuthenticationFilter
+
             - id: hub-service
               uri: lb://hub-service
               predicates:
@@ -79,8 +86,20 @@ spring:
               filters:
                 - name: AuthenticationFilter
 
+            - id: chatbot-service
+              uri: lb://chatbot-service
+              predicates:
+                - Path=/api/chatbot/**
+              filters:
+                - name: AuthenticationFilter
+
 server:
   port: 9191
+
+logging:
+  level:
+    root: INFO
+    vn.edu.hust: DEBUG
 
 eureka:
   client:
