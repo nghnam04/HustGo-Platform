@@ -17,6 +17,7 @@ public record OrderStatusChangedEvent(
         Double receiverLng,
         LocalDateTime timestamp,
         String originHubAdminId,
-        String hubAdminId
+        String hubAdminId,
+        Integer failCount
 ) {
 }

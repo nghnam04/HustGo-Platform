@@ -2,8 +2,6 @@ package vn.edu.hust.base_domain.constant;
 
 import lombok.Getter;
 
-import java.util.Arrays;
-
 @Getter
 public enum HanoiDistrict {
     // 12 quận nội thành
@@ -46,15 +44,5 @@ public enum HanoiDistrict {
     HanoiDistrict(String displayName, boolean inner) {
         this.displayName = displayName;
         this.inner = inner;
-    }
-
-    public static HanoiDistrict fromName(String name) {
-        if (name == null) return null;
-        return Arrays.stream(values())
-                .filter(d -> d.displayName.equalsIgnoreCase(name)
-                        || d.name().equalsIgnoreCase(name)
-                        || name.toLowerCase().contains(d.displayName.toLowerCase().replace("quận ", "").replace("huyện ", "")))
-                .findFirst()
-                .orElse(null);
     }
 }
