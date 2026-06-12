@@ -12,7 +12,7 @@ spring:
       retries: 3
 
 server:
-  port: 8082
+  port: 8083
 
 eureka:
   client:
@@ -44,9 +44,13 @@ resilience4j:
         waitDuration: 2s
 
 payment:
+  frontend:
+    redirect-url: ${PAYMENT_FRONTEND_REDIRECT_URL}
   momo:
     endpoint: ${MOMO_ENDPOINT}
     partner-code: ${MOMO_PARTNER_CODE}
     access-key: ${MOMO_ACCESS_KEY}
     secret-key: ${MOMO_SECRET_KEY}
     callback-url: ${PAYMENT_CALLBACK_URL:http://localhost:9191/api/payments/callback}
+  mock:
+    enabled: true
