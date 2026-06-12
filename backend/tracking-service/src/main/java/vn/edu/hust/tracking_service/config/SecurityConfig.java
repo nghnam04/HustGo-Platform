@@ -25,6 +25,9 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/tracking/*/destination").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/tracking/*/shipper-location").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/tracking/*/history").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

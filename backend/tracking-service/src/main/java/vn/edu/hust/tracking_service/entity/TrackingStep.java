@@ -18,6 +18,8 @@ public class TrackingStep {
     private Long id;
 
     private String orderId;
+    private String shipperId;
+    
     private String status;
     private String locationName;
     private Double lat;
