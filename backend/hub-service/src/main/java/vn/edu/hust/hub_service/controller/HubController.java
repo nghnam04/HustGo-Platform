@@ -18,17 +18,68 @@ public class HubController {
 
     private final HubService hubService;
 
-    // ==================== Internal API ====================
+    // Internal API
 
+    // Kiểm tra Hub tồn tại
     @GetMapping("/api/internal/hubs/{id}/exists")
     public boolean checkExists(@PathVariable String id) {
         return hubService.existsById(id);
     }
 
-    // ==================== Super Admin API ====================
+    // Lấy thông tin Hub
+    @GetMapping("/api/internal/hubs/{id}")
+    public ResponseEntity<HubResponse> getHubInternal(@PathVariable String id) {
+        return ResponseEntity.ok(hubService.getHubById(id));
+    }
+
+    // Lấy displayName của district
+    @GetMapping("/api/internal/hubs/{id}/district")
+    public ResponseEntity<String> getHubDistrict(@PathVariable String id) {
+        return ResponseEntity.ok(hubService.getHubDistrict(id));
+    }
+
+    // Lấy hubId từ managerId
+    @GetMapping("/api/internal/hubs/manager/{managerId}")
+    public ResponseEntity<String> getHubIdByManager(@PathVariable String managerId) {
+        return ResponseEntity.ok(hubService.getHubIdByManager(managerId));
+    }
+
+    // Lấy managerId từ hubId
+    @GetMapping("/api/internal/hubs/{hubId}/manager")
+    public ResponseEntity<String> getManagerIdByHub(@PathVariable String hubId) {
+        return ResponseEntity.ok(hubService.getManagerIdByHub(hubId));
+    }
+
+    // HUB ADMIN
 
     // Lấy danh sách tất cả Hub
     @GetMapping("/api/hubs")
+    @PreAuthorize("hasRole('HUB_ADMIN') or hasRole('SUPER_ADMIN')")
+    public ResponseEntity<PageResponse<HubResponse>> getAllHubsForTransfer(
+            @RequestParam(defaultValue = "0") int pageNo,
+            @RequestParam(defaultValue = "100") int pageSize,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(required = false) String keyword
+    ) {
+        return ResponseEntity.ok(
+                hubService.getAllHubs(pageNo, pageSize, sortBy, sortDir, keyword)
+        );
+    }
+
+    // Lấy thông tin Hub mình đang quản lý
+    @GetMapping("/api/hubs/me")
+    @PreAuthorize("hasRole('HUB_ADMIN')")
+    public ResponseEntity<HubResponse> getMyHub(
+            @AuthenticationPrincipal String adminId
+    ) {
+        return ResponseEntity.ok(hubService.getHubByManager(adminId));
+    }
+
+    // SUPER ADMIN
+
+    // Lấy danh sách tất cả Hub
+    @GetMapping("/api/super-admin/hubs")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<PageResponse<HubResponse>> getAllHubs(
             @RequestParam(defaultValue = "0") int pageNo,
@@ -93,15 +144,5 @@ public class HubController {
     ) {
         hubService.deleteHub(id, actorId);
         return ResponseEntity.ok("Đã xoá thành công Hub: " + id);
-    }
-
-    // ==================== Hub Admin API ====================
-
-    @GetMapping("/api/hubs/me")
-    @PreAuthorize("hasRole('HUB_ADMIN')")
-    public ResponseEntity<HubResponse> getMyHub(
-            @AuthenticationPrincipal String adminId
-    ) {
-        return ResponseEntity.ok(hubService.getHubByManager(adminId));
     }
 }

@@ -2,6 +2,8 @@ package vn.edu.hust.hub_service.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import vn.edu.hust.base_domain.constant.HanoiDistrict;
 
 import java.time.LocalDateTime;
@@ -50,18 +52,10 @@ public class Hub {
     @Column(nullable = false)
     private boolean active = true;
 
+    @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
-
-    @PrePersist
-    public void onCreate() {
-        createdAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    public void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 }

@@ -42,6 +42,25 @@ public class HubService {
         return hubRepository.existsByIdAndActiveTrue(id);
     }
 
+    public String getHubDistrict(String id) {
+        Hub hub = getHubEntityById(id);
+        return hub.getDistrict().getDisplayName();
+    }
+
+    public String getManagerIdByHub(String hubId) {
+        Hub hub = getHubEntityById(hubId);
+        if (hub.getManagerId() == null) {
+            throw new HustGoException(HttpStatus.NOT_FOUND, "Hub chưa được gán hub admin: " + hubId);
+        }
+        return hub.getManagerId();
+    }
+
+    public String getHubIdByManager(String managerId) {
+        Hub hub = hubRepository.findByManagerIdAndActiveTrue(managerId)
+                .orElseThrow(() -> new HustGoException(HttpStatus.NOT_FOUND, "Không tìm thấy hub cho manager: " + managerId));
+        return hub.getId();
+    }
+
     public PageResponse<HubResponse> getAllHubs(
             int pageNo,
             int pageSize,
@@ -113,10 +132,7 @@ public class HubService {
         Hub hub = getHubEntityById(hubId);
 
         if (!verifyHubAdmin(managerId)) {
-            throw new HustGoException(
-                    HttpStatus.BAD_REQUEST,
-                    "User không tồn tại hoặc không phải HUB_ADMIN"
-            );
+            throw new HustGoException(HttpStatus.BAD_REQUEST, "User không tồn tại hoặc không phải HUB_ADMIN");
         }
 
         if (hubRepository.existsByManagerId(managerId)) {
@@ -136,7 +152,7 @@ public class HubService {
 
         if (!hub.getCode().equals(details.code())) {
             if (hubRepository.existsByCodeAndIdNot(details.code(), id)) {
-                throw new HustGoException(HttpStatus.CONFLICT, "Mã Hub " + details.code() + " đã tồn tại ở một Hub khác!");
+                throw new HustGoException(HttpStatus.CONFLICT, "Mã Hub " + details.code() + " đã tồn tại");
             }
             hub.setCode(details.code());
         }
@@ -173,7 +189,7 @@ public class HubService {
         return HubMapper.toResponse(hub);
     }
 
-    // ================= HELPERS =================
+    // HELPERS
 
     private boolean verifyHubAdmin(String managerId) {
         try {
@@ -191,7 +207,7 @@ public class HubService {
             return Boolean.TRUE.equals(result);
 
         } catch (Exception e) {
-            log.error("VERIFY HUB ADMIN ERROR", e);
+            log.error("Lỗi xác thực Hub Admin", e);
             return false;
         }
     }
@@ -208,8 +224,9 @@ public class HubService {
         );
     }
 
-    // ================= SCHEDULE CLEANUP =================
+    // SCHEDULER CLEANUP
 
+    // Xoá Hub ngừng hoạt động quá 6 tháng
     @Transactional
     @Scheduled(cron = "0 30 1 * * *") // 1h30 sáng mỗi ngày
     public void cleanupInactiveHubs() {
@@ -221,7 +238,7 @@ public class HubService {
             List<Hub> hubsToDelete = hubRepository.findByActiveFalseAndUpdatedAtBefore(cutoffDate);
 
             if (hubsToDelete.isEmpty()) {
-                log.info("Không có Hub inactive nào quá 6 tháng để xóa.");
+                log.info("Không có Hub ngừng hoạt động nào quá 6 tháng để xóa.");
                 return;
             }
 
@@ -230,7 +247,7 @@ public class HubService {
             log.info("Đã xóa {} Hub inactive quá 6 tháng", count);
 
         } catch (Exception e) {
-            log.error("Lỗi khi cleanup Hub inactive", e);
+            log.error("Lỗi khi cleanup Hub ngừng hoạt động", e);
         }
     }
 }
