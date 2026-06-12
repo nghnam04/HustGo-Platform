@@ -1,5 +1,7 @@
 package vn.edu.hust.auth_service.service;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -81,6 +83,8 @@ public class AuthService {
     }
 
     @Transactional
+    @Retry(name = "socialLoginRetry", fallbackMethod = "fallbackSocialLogin")
+    @CircuitBreaker(name = "socialLoginCircuitBreaker", fallbackMethod = "fallbackSocialLogin")
     public AuthResponse socialLogin(SocialLoginRequest request) {
         if (request.provider() == AuthProvider.GOOGLE) {
             try {
@@ -277,5 +281,10 @@ public class AuthService {
             log.warn("Không thể trích xuất thông tin ảnh từ Facebook: {}", e.getMessage());
         }
         return null;
+    }
+
+    private AuthResponse fallbackSocialLogin(SocialLoginRequest request, Throwable ex) {
+        log.error("[AuthService] Fallback socialLogin cho provider {}: {}", request.provider(), ex.getMessage());
+        throw new HustGoException(HttpStatus.SERVICE_UNAVAILABLE, "Dịch vụ xác thực " + request.provider() + " tạm thời không khả dụng, vui lòng thử lại sau");
     }
 }

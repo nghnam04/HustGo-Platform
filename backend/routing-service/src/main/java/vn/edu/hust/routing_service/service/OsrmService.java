@@ -1,5 +1,7 @@
 package vn.edu.hust.routing_service.service;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,6 +42,8 @@ public class OsrmService {
 
     // Lấy ma trận khoảng cách
     @SuppressWarnings("unchecked")
+    @Retry(name = "osrmMatrixRetry", fallbackMethod = "fallbackMatrix")
+    @CircuitBreaker(name = "osrmCircuitBreaker", fallbackMethod = "fallbackMatrix")
     public double[][] getDistanceMatrix(List<LocationPoint> allPoints) {
         String coords = buildCoordinatesPath(allPoints);
 
@@ -87,6 +91,8 @@ public class OsrmService {
 
     // Lấy chi tiết tuyến đường
     @SuppressWarnings("unchecked")
+    @Retry(name = "osrmRouteRetry", fallbackMethod = "fallbackRoute")
+    @CircuitBreaker(name = "osrmCircuitBreaker", fallbackMethod = "fallbackRoute")
     public Map<String, Object> getDetailedRoute(List<LocationPoint> orderedPoints) {
         String coords = buildCoordinatesPath(orderedPoints);
 
@@ -109,5 +115,16 @@ public class OsrmService {
             log.error("[OSRM] Lỗi kết nối Route Service: {}", e.getMessage());
             throw new HustGoException(HttpStatus.BAD_GATEWAY, "Lỗi kết nối OSRM Route Service: " + e.getMessage());
         }
+    }
+
+    // Fallback methods
+    private double[][] fallbackMatrix(List<LocationPoint> allPoints, Throwable ex) {
+        log.error("[OSRM] Fallback getDistanceMatrix cho {} điểm: {}", allPoints.size(), ex.getMessage());
+        throw new HustGoException(HttpStatus.SERVICE_UNAVAILABLE, "OSRM tạm thời không khả dụng, vui lòng thử lại sau");
+    }
+
+    private Map<String, Object> fallbackRoute(List<LocationPoint> orderedPoints, Throwable ex) {
+        log.error("[OSRM] Fallback getDetailedRoute: {}", ex.getMessage());
+        throw new HustGoException(HttpStatus.SERVICE_UNAVAILABLE, "OSRM tạm thời không khả dụng, vui lòng thử lại sau");
     }
 }
