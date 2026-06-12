@@ -2,6 +2,7 @@ package vn.edu.hust.auth_service.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 import vn.edu.hust.auth_service.constant.AuthProvider;
 
 import java.time.LocalDateTime;
@@ -21,6 +22,7 @@ public class User {
 
     @Column(unique = true, nullable = false)
     private String email;
+
     @Column(unique = true, nullable = false)
     private String username;
 
@@ -42,10 +44,6 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles;
 
+    @CreationTimestamp
     private LocalDateTime createdAt;
-
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-    }
 }

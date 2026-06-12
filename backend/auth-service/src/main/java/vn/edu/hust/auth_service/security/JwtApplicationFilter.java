@@ -16,7 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-//Execute once per Request
+// Execute once per Request
 @Component
 @AllArgsConstructor
 public class JwtApplicationFilter extends OncePerRequestFilter {
@@ -29,10 +29,10 @@ public class JwtApplicationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
-        //get JWT token from HTTP request
+        // get JWT token from HTTP request
         String token = getTokenFromRequest(request);
 
-        //validate token
+        // validate token
         try {
             if (StringUtils.hasText(token)) {
                 if (tokenBlacklistService.isTokenBlacklisted(token)) {
@@ -41,13 +41,13 @@ public class JwtApplicationFilter extends OncePerRequestFilter {
                 }
 
                 if (jwtTokenProvider.validateToken(token)) {
-                    //get username from token
+                    // get username from token
                     String username = jwtTokenProvider.getUsername(token);
 
-                    //load the user from dtb
+                    // load the user from dtb
                     UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                    //create authentication object
+                    // create authentication object
                     UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
                             null,
@@ -61,10 +61,10 @@ public class JwtApplicationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception e) {
-            logger.error("Could not set user authentication in security context", e);
+            logger.error("Không thể set user authentication trong security context", e);
         }
 
-        //allow request continuously go to another filter
+        // allow request continuously go to another filter
         filterChain.doFilter(request, response);
     }
 

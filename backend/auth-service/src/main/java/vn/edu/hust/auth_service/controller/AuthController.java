@@ -17,21 +17,25 @@ public class AuthController {
 
     private final AuthService authService;
 
+    // Đăng nhập
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
 
+    // Đăng nhập Oauth2 với Google, Facebook
     @PostMapping("/social-login")
     public ResponseEntity<AuthResponse> socialLogin(@Valid @RequestBody SocialLoginRequest request) {
         return ResponseEntity.ok(authService.socialLogin(request));
     }
 
+    // Đăng ký
     @PostMapping("/register")
     public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.ok(authService.register(request));
     }
 
+    // Đăng xuất
     @PostMapping("/logout")
     public ResponseEntity<String> logout(
             @RequestHeader(value = "Authorization", required = false) String token) {

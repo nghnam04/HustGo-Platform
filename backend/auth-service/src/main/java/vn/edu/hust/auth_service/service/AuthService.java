@@ -3,6 +3,7 @@ package vn.edu.hust.auth_service.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -19,6 +20,7 @@ import vn.edu.hust.auth_service.dto.RegisterRequest;
 import vn.edu.hust.auth_service.dto.SocialLoginRequest;
 import vn.edu.hust.auth_service.entity.Role;
 import vn.edu.hust.auth_service.entity.User;
+import vn.edu.hust.auth_service.exception.HustGoException;
 import vn.edu.hust.auth_service.kafka.UserProducer;
 import vn.edu.hust.auth_service.repository.RoleRepository;
 import vn.edu.hust.auth_service.repository.UserRepository;
@@ -43,7 +45,7 @@ public class AuthService {
     private final TokenBlacklistService tokenBlacklistService;
     private final RoleRepository roleRepository;
     private final WebClient webClient;
-    private final UserProducer userProducer;          // << THÊM MỚI
+    private final UserProducer userProducer;
 
     @Value("${app.google.client-id}")
     private String googleClientId;
@@ -62,17 +64,16 @@ public class AuthService {
         );
 
         User user = userRepository.findByEmailOrUsername(identifier, identifier)
-                .orElseThrow(() -> new RuntimeException("Sai tài khoản hoặc mật khẩu"));
+                .orElseThrow(() -> new HustGoException(HttpStatus.UNAUTHORIZED, "Sai tài khoản hoặc mật khẩu"));
 
         AuthResponse response = buildAuthResponse(user);
 
-        // << THÊM MỚI — thông báo đăng nhập thành công
         userProducer.publishUserEvent(new UserEvent(
                 user.getId(),
                 user.getUsername(),
                 "LOGGED_IN",
                 user.getId(),
-                "Bạn vừa đăng nhập thành công vào hệ thống HUSTGo",
+                "Bạn vừa đăng nhập thành công vào hệ thống HustGo",
                 LocalDateTime.now()
         ));
 
@@ -91,7 +92,7 @@ public class AuthService {
                         .block();
 
                 if (googleResponse == null || googleResponse.get("sub") == null) {
-                    throw new RuntimeException("Không thể lấy thông tin từ tài khoản Google");
+                    throw new HustGoException(HttpStatus.BAD_GATEWAY, "Không thể lấy thông tin từ tài khoản Google");
                 }
 
                 String providerId = (String) googleResponse.get("sub");
@@ -104,7 +105,6 @@ public class AuthService {
                 User user = processSocialUser(email, name, picture, providerId, request.provider());
                 AuthResponse response = buildAuthResponse(user);
 
-                // << THÊM MỚI — thông báo đăng nhập social
                 userProducer.publishUserEvent(new UserEvent(
                         user.getId(),
                         user.getUsername(),
@@ -117,7 +117,7 @@ public class AuthService {
                 return response;
             } catch (Exception e) {
                 log.error("Lỗi xác thực Google API: {}", e.getMessage());
-                throw new RuntimeException("Xác thực đối tác Google thất bại");
+                throw new HustGoException(HttpStatus.BAD_GATEWAY, "Xác thực đối tác Google thất bại");
             }
         } else if (request.provider() == AuthProvider.FACEBOOK) {
             try {
@@ -131,7 +131,7 @@ public class AuthService {
 
                 Map<?, ?> data = (Map<?, ?>) debugResponse.get("data");
                 if (data == null || !(boolean) data.get("is_valid") || !facebookAppId.equals(data.get("app_id").toString())) {
-                    throw new RuntimeException("Token Facebook không hợp lệ hoặc không thuộc ứng dụng này");
+                    throw new HustGoException(HttpStatus.BAD_REQUEST, "Token Facebook không hợp lệ hoặc không thuộc ứng dụng này");
                 }
 
                 Map<?, ?> fbResponse = webClient.get()
@@ -147,7 +147,7 @@ public class AuthService {
                         .block();
 
                 if (fbResponse == null || fbResponse.get("id") == null) {
-                    throw new RuntimeException("Không thể lấy thông tin từ Facebook");
+                    throw new HustGoException(HttpStatus.BAD_GATEWAY, "Không thể lấy thông tin từ Facebook");
                 }
 
                 String providerId = (String) fbResponse.get("id");
@@ -160,7 +160,6 @@ public class AuthService {
                 User user = processSocialUser(email, name, picture, providerId, request.provider());
                 AuthResponse response = buildAuthResponse(user);
 
-                // << THÊM MỚI — thông báo đăng nhập social
                 userProducer.publishUserEvent(new UserEvent(
                         user.getId(),
                         user.getUsername(),
@@ -173,10 +172,10 @@ public class AuthService {
                 return response;
             } catch (Exception e) {
                 log.error("Lỗi xác thực Facebook: {}", e.getMessage());
-                throw new RuntimeException("Xác thực Facebook thất bại");
+                throw new HustGoException(HttpStatus.BAD_GATEWAY, "Xác thực Facebook thất bại");
             }
         } else {
-            throw new RuntimeException("Provider không được hỗ trợ");
+            throw new HustGoException(HttpStatus.BAD_REQUEST, "Provider không được hỗ trợ");
         }
     }
 
@@ -184,7 +183,7 @@ public class AuthService {
         return userRepository.findByEmail(email)
                 .orElseGet(() -> {
                     Role customerRole = roleRepository.findByName(RoleEnum.CUSTOMER)
-                            .orElseThrow(() -> new RuntimeException("Role CUSTOMER không tồn tại"));
+                            .orElseThrow(() -> new HustGoException(HttpStatus.NOT_FOUND, "Role CUSTOMER không tồn tại"));
                     return userRepository.save(User.builder()
                             .email(email)
                             .username(email)
@@ -201,7 +200,7 @@ public class AuthService {
         if (token != null && token.startsWith("Bearer ")) {
             String jwt = token.substring(7);
             tokenBlacklistService.blacklistToken(jwt);
-            log.info("Đã đăng xuất và gửi token vào blacklist.");
+            log.info("Đã đăng xuất và gửi token vào blacklist");
         }
     }
 
@@ -210,15 +209,16 @@ public class AuthService {
         String email = request.email().toLowerCase().trim();
         String username = request.username().trim();
 
-        if (userRepository.existsByEmail(email)) throw new RuntimeException("Email đã tồn tại");
-        if (userRepository.existsByUsername(username)) throw new RuntimeException("Username đã tồn tại");
+        if (userRepository.existsByEmail(email)) throw new HustGoException(HttpStatus.CONFLICT, "Email đã tồn tại");
+        if (userRepository.existsByUsername(username))
+            throw new HustGoException(HttpStatus.CONFLICT, "Username đã tồn tại");
 
         if (request.role() == RoleEnum.SUPER_ADMIN || request.role() == RoleEnum.HUB_ADMIN) {
-            throw new RuntimeException("Không được phép đăng ký tài khoản quản trị viên");
+            throw new HustGoException(HttpStatus.FORBIDDEN, "Không được phép đăng ký tài khoản quản trị viên");
         }
 
         Role role = roleRepository.findByName(request.role())
-                .orElseThrow(() -> new RuntimeException("Role không tồn tại"));
+                .orElseThrow(() -> new HustGoException(HttpStatus.NOT_FOUND, "Role không tồn tại"));
 
         User user = User.builder()
                 .email(email)
@@ -231,7 +231,6 @@ public class AuthService {
 
         User saved = userRepository.save(user);
 
-        // << THÊM MỚI — thông báo đăng ký thành công
         userProducer.publishUserEvent(new UserEvent(
                 saved.getId(),
                 saved.getUsername(),

@@ -24,6 +24,7 @@ public class UserController {
 
     private final UserService userService;
 
+    // Xem thông tin cá nhân
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserProfileResponse> getMyProfile(@AuthenticationPrincipal String userId) {
@@ -31,6 +32,7 @@ public class UserController {
         return ResponseEntity.ok(profile);
     }
 
+    // Thay đổi thông tin cá nhân
     @PutMapping(value = "/me", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserProfileResponse> updateMyProfile(
@@ -41,6 +43,7 @@ public class UserController {
         return ResponseEntity.ok(updatedProfile);
     }
 
+    // Đổi mật khẩu
     @PatchMapping("/me/change-password")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<String> changePassword(
@@ -57,6 +60,7 @@ public class UserController {
         return ResponseEntity.ok(userService.isHubAdmin(id));
     }
 
+    // Lấy danh sách toàn bộ user
     @GetMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<PageResponse<UserResponse>> getAllUsers(
@@ -69,12 +73,14 @@ public class UserController {
         return ResponseEntity.ok(userService.getAllUsers(pageNo, pageSize, sortBy, sortDir, keyword, role));
     }
 
+    // Lấy thông tin user theo ID
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<UserResponse> getUser(@PathVariable String id) {
         return ResponseEntity.ok(userService.getUserById(id));
     }
 
+    // Cập nhật phân quyền cho user
     @PatchMapping("/{id}/roles")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<UserResponse> updateRoles(
@@ -84,6 +90,7 @@ public class UserController {
         return ResponseEntity.ok(userService.updateUserRoles(id, roles, performedBy));
     }
 
+    // Xoá user
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<String> deleteUser(

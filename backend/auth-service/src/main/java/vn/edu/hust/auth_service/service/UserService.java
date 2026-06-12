@@ -39,7 +39,7 @@ public class UserService {
     private final RoleRepository roleRepository;
     private final CloudinaryService cloudinaryService;
     private final PasswordEncoder passwordEncoder;
-    private final UserProducer userProducer;          // << THÊM MỚI
+    private final UserProducer userProducer;
 
     public UserProfileResponse getMyProfile(String userId) {
         User user = userRepository.findById(userId)
@@ -87,7 +87,6 @@ public class UserService {
                 .map(role -> role.getName().name())
                 .collect(Collectors.toSet());
 
-        // << THÊM MỚI — thông báo cập nhật hồ sơ
         userProducer.publishUserEvent(new UserEvent(
                 savedUser.getId(),
                 savedUser.getUsername(),
@@ -129,7 +128,6 @@ public class UserService {
         userRepository.save(user);
         log.info("Người dùng với ID {} đã đổi mật khẩu thành công", userId);
 
-        // << THÊM MỚI — thông báo đổi mật khẩu
         userProducer.publishUserEvent(new UserEvent(
                 user.getId(),
                 user.getUsername(),

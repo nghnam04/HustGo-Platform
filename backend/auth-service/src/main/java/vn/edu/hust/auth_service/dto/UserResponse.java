@@ -1,5 +1,6 @@
 package vn.edu.hust.auth_service.dto;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 
 public record UserResponse(
@@ -9,6 +10,6 @@ public record UserResponse(
         String fullName,
         String avatarUrl,
         Set<String> roles,
-        java.time.LocalDateTime createdAt
+        LocalDateTime createdAt
 ) {
 }
