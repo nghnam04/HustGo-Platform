@@ -33,15 +33,6 @@ services:
 
     volumes:
       - kafka_data:/bitnami/kafka
-
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: hustgo-rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    restart: always
-
   zipkin:
     image: openzipkin/zipkin
     container_name: hustgo-zipkin

@@ -10,8 +10,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class NotificationResponse {
-    private String type;    // "PAYMENT", "ORDER", "HUB", "USER"
-    private String status;  // "SUCCESS", "FAILED"
+    private String type;
+    private String status;
     private String message;
     private Object data;
 }
