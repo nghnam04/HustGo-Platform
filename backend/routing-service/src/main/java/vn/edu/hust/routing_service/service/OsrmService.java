@@ -42,8 +42,8 @@ public class OsrmService {
 
     // Lấy ma trận khoảng cách
     @SuppressWarnings("unchecked")
-    @Retry(name = "osrmMatrixRetry", fallbackMethod = "fallbackMatrix")
-    @CircuitBreaker(name = "osrmCircuitBreaker", fallbackMethod = "fallbackMatrix")
+    @Retry(name = "routing-service", fallbackMethod = "fallbackMatrix")
+    @CircuitBreaker(name = "routing-service", fallbackMethod = "fallbackMatrix")
     public double[][] getDistanceMatrix(List<LocationPoint> allPoints) {
         String coords = buildCoordinatesPath(allPoints);
 
@@ -91,8 +91,8 @@ public class OsrmService {
 
     // Lấy chi tiết tuyến đường
     @SuppressWarnings("unchecked")
-    @Retry(name = "osrmRouteRetry", fallbackMethod = "fallbackRoute")
-    @CircuitBreaker(name = "osrmCircuitBreaker", fallbackMethod = "fallbackRoute")
+    @Retry(name = "routing-service", fallbackMethod = "fallbackRoute")
+    @CircuitBreaker(name = "routing-service", fallbackMethod = "fallbackRoute")
     public Map<String, Object> getDetailedRoute(List<LocationPoint> orderedPoints) {
         String coords = buildCoordinatesPath(orderedPoints);
 

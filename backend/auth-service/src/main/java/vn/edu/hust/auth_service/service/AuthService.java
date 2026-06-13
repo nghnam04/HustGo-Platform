@@ -83,8 +83,8 @@ public class AuthService {
     }
 
     @Transactional
-    @Retry(name = "socialLoginRetry", fallbackMethod = "fallbackSocialLogin")
-    @CircuitBreaker(name = "socialLoginCircuitBreaker", fallbackMethod = "fallbackSocialLogin")
+    @Retry(name = "auth-service", fallbackMethod = "fallbackSocialLogin")
+    @CircuitBreaker(name = "auth-service", fallbackMethod = "fallbackSocialLogin")
     public AuthResponse socialLogin(SocialLoginRequest request) {
         if (request.provider() == AuthProvider.GOOGLE) {
             try {
