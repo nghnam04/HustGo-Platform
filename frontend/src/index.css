@@ -1,5 +1,22 @@
 @import "tailwindcss";
 
+/* Leaflet map container fix */
+.hub-map-container {
+  z-index: 0;
+  display: block;
+  position: relative;
+}
+
+.hub-map-container .leaflet-container {
+  height: 100% !important;
+  width: 100% !important;
+  font-family: inherit;
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
 @theme {
   --font-sans: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
 
@@ -104,4 +121,34 @@ body,
   box-shadow:
     0 20px 35px -8px rgba(128, 27, 41, 0.12),
     0 0 24px 2px rgba(220, 38, 38, 0.15);
+}
+
+/* Force Leaflet zoom control to always be visible and properly positioned */
+.leaflet-control-zoom {
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  border-radius: 4px !important;
+  overflow: visible !important;
+}
+
+.leaflet-control-zoom a {
+  width: 32px !important;
+  height: 32px !important;
+  line-height: 32px !important;
+  color: #1e293b !important;
+  background: white !important;
+  font-size: 16px !important;
+}
+
+.leaflet-control-zoom a:hover {
+  color: #dc2626 !important;
+  background: #fef2f2 !important;
+}
+
+.leaflet-control-zoom a:first-child {
+  border-radius: 4px 4px 0 0 !important;
+}
+
+.leaflet-control-zoom a:last-child {
+  border-radius: 0 0 4px 4px !important;
 }

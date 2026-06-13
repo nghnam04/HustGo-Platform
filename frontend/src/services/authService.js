@@ -1,10 +1,7 @@
-// authService.js
-
 import axiosInstance from "../api/axiosInstance";
 
 const authService = {
-  // ================= AUTH =================
-
+  // AUTH
   login: async ({ emailOrUsername, password }) => {
     const response = await axiosInstance.post("/auth/login", {
       emailOrUsername,
@@ -35,7 +32,6 @@ const authService = {
   logout: async () => {
     try {
       await axiosInstance.post("/auth/logout");
-      console.log("Backend logout success - Token blacklisted");
     } catch (error) {
       console.error("Backend logout failed:", error);
     } finally {

@@ -1,10 +1,10 @@
 import axiosInstance from "../api/axiosInstance";
 
 const routingService = {
-  // HUB_ADMIN / SUPER_ADMIN tối ưu tuyến giao hàng
+  // Tối ưu tuyến giao hàng
   optimizeRoute: (data) => axiosInstance.post("/routing/optimize", data),
 
-  // SHIPPER hoặc HUB_ADMIN xem trước tuyến đường
+  // Xem trước tuyến đường
   routePreview: (data) => axiosInstance.post("/routing/route-preview", data),
 };
 

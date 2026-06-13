@@ -5,16 +5,11 @@ import { jwtDecode } from "jwt-decode";
 
 export const AuthContext = createContext(null);
 
-// ========================================================
-// 🎯 NÂNG CẤP HÀM DECODE: Bóc tách toàn diện thông tin từ JWT (GIỮ NGUYÊN)
-// ========================================================
 const decodeTokenToUser = (token) => {
   if (!token) return null;
   try {
     const decoded = jwtDecode(token);
     if (decoded.exp * 1000 < Date.now()) return null;
-
-    console.log("DỮ LIỆU THÔ BÊN TRONG JWT DECODED:", decoded);
 
     const rolesString = decoded.role || decoded.roles;
     let cleanRoles = [];
@@ -37,7 +32,7 @@ const decodeTokenToUser = (token) => {
       id: decoded.userId || decoded.id || decoded.sub,
       username: decoded.username || decoded.sub,
       email: decoded.email || null,
-      fullName: decoded.fullName || decoded.name || "Người dùng Facebook",
+      fullName: decoded.fullName || decoded.name || "Khách hàng HustGo",
       avatarUrl: decoded.avatarUrl || decoded.avatar || decoded.picture || null,
       role: {
         name: cleanRoles[0] || "CUSTOMER",
@@ -55,18 +50,19 @@ const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(sessionStorage.getItem("token") || null);
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  const [gpsStatus, setGpsStatus] = useState(() => {
+    // null / 'granted' / 'denied'
+    return sessionStorage.getItem("gps_permission") || null;
+  });
+  const [askGpsOnLogin, setAskGpsOnLogin] = useState(false);
   const navigate = useNavigate();
 
-  // ========================================================
-  // 🛠️ ĐÃ SỬA: Khởi tạo Auth (Ưu tiên gọi API profile để đồng bộ dữ liệu mới nhất)
-  // ========================================================
   useEffect(() => {
     const initializeAuth = async () => {
       const tokenFromStorage = sessionStorage.getItem("token");
 
       if (tokenFromStorage) {
         try {
-          // Gọi API để lấy dữ liệu mới nhất từ server (có cả createdAt)
           const profile = await authService.getMyProfile();
           setToken(tokenFromStorage);
           setUser(profile);
@@ -83,9 +79,6 @@ const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
-  // ========================================================
-  // 🛠️ ĐÃ SỬA: Gọi API profile sau khi login thường
-  // ========================================================
   const login = async ({ email: emailOrUsername, password }) => {
     setLoading(true);
     try {
@@ -104,23 +97,30 @@ const AuthProvider = ({ children }) => {
       sessionStorage.setItem("token", accessToken);
       setToken(accessToken);
 
-      // Lấy profile đầy đủ từ server
       const fullProfile = await authService.getMyProfile();
       sessionStorage.setItem("user", JSON.stringify(fullProfile));
       setUser(fullProfile);
+
+      const cleanRoles = fullProfile.roles || [];
+      const isShipper = cleanRoles.some((r) => r === "SHIPPER");
+      if (isShipper && sessionStorage.getItem("gps_permission") !== "granted") {
+        setAskGpsOnLogin(true);
+      }
 
       setLoading(false);
       return responseData;
     } catch (error) {
       console.error(error);
       setLoading(false);
-      return { error: error.response?.data?.message || "Đăng nhập thất bại" };
+      const status = error.response?.status;
+      const message = error.response?.data?.message || "Đăng nhập thất bại";
+      if (status === 429) {
+        return { error: "Đăng nhập thất bại. Thử lại sau 1 phút", status };
+      }
+      return { error: message, status };
     }
   };
 
-  // ========================================================
-  // 🛠️ ĐÃ SỬA: Gọi API profile sau khi login social
-  // ========================================================
   const loginWithSocial = async ({ provider, socialToken }) => {
     setLoading(true);
     try {
@@ -135,39 +135,32 @@ const AuthProvider = ({ children }) => {
       sessionStorage.setItem("token", accessToken);
       setToken(accessToken);
 
-      // Lấy profile đầy đủ từ server
       const fullProfile = await authService.getMyProfile();
       sessionStorage.setItem("user", JSON.stringify(fullProfile));
       setUser(fullProfile);
 
       return responseData;
     } catch (error) {
-      console.error("Lỗi đăng nhập mạng xã hội context:", error);
+      console.error("Lỗi đăng nhập social:", error);
       throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  // ========================================================
-  // 🛠️ SỬA CHỖ 4: Dọn dẹp sạch sẽ kho lưu trữ khi Đăng xuất (Logout)
-  // ========================================================
   const logout = async () => {
     try {
       await authService.logout();
     } catch (error) {
       console.error("Lỗi khi gọi API logout:", error);
     } finally {
-      sessionStorage.clear(); // 🟢 Xóa toàn bộ sessionStorage
+      sessionStorage.clear();
       setToken(null);
       setUser(null);
       navigate("/login");
     }
   };
 
-  // ========================================================
-  // 🌟 KHÔNG LIÊN QUAN: Giữ nguyên vẹn toàn bộ phần code phía dưới
-  // ========================================================
   const register = async (
     fullName,
     email,
@@ -216,8 +209,60 @@ const AuthProvider = ({ children }) => {
       loginWithSocial,
       logout,
       register,
+      gpsStatus,
+      askGpsOnLogin,
+      setAskGpsOnLogin,
+      requestGpsPermission: () =>
+        new Promise((resolve) => {
+          if (!navigator.geolocation) {
+            setGpsStatus("denied");
+            sessionStorage.setItem("gps_permission", "denied");
+            resolve(false);
+            return;
+          }
+          navigator.permissions
+            .query({ name: "geolocation" })
+            .then((result) => {
+              if (result.state === "granted") {
+                setGpsStatus("granted");
+                sessionStorage.setItem("gps_permission", "granted");
+                resolve(true);
+              } else if (result.state === "denied") {
+                setGpsStatus("denied");
+                sessionStorage.setItem("gps_permission", "denied");
+                resolve(false);
+              } else {
+                navigator.geolocation.getCurrentPosition(
+                  () => {
+                    setGpsStatus("granted");
+                    sessionStorage.setItem("gps_permission", "granted");
+                    resolve(true);
+                  },
+                  () => {
+                    setGpsStatus("denied");
+                    sessionStorage.setItem("gps_permission", "denied");
+                    resolve(false);
+                  },
+                );
+              }
+            })
+            .catch(() => {
+              navigator.geolocation.getCurrentPosition(
+                () => {
+                  setGpsStatus("granted");
+                  sessionStorage.setItem("gps_permission", "granted");
+                  resolve(true);
+                },
+                () => {
+                  setGpsStatus("denied");
+                  sessionStorage.setItem("gps_permission", "denied");
+                  resolve(false);
+                },
+              );
+            });
+        }),
     }),
-    [user, token, loading],
+    [user, token, loading, gpsStatus, askGpsOnLogin],
   );
 
   return (
