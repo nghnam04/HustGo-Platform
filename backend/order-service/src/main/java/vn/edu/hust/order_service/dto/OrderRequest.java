@@ -3,8 +3,11 @@ package vn.edu.hust.order_service.dto;
 import jakarta.validation.constraints.*;
 import lombok.Builder;
 import org.springframework.web.multipart.MultipartFile;
+import vn.edu.hust.base_domain.constant.HanoiDistrict;
 import vn.edu.hust.base_domain.constant.PaymentMethod;
 import vn.edu.hust.base_domain.constant.ServiceCode;
+
+import java.math.BigDecimal;
 
 @Builder
 public record OrderRequest(
@@ -24,16 +27,16 @@ public record OrderRequest(
         @NotBlank(message = "Tỉnh/Thành nhận không được để trống")
         String receiverProvince,
 
-        @NotBlank(message = "Quận/Huyện nhận không được để trống")
-        String receiverDistrict,
+        @NotNull(message = "Quận/Huyện nhận không được để trống")
+        HanoiDistrict receiverDistrict,
 
         @NotBlank(message = "Phường/Xã nhận không được để trống")
         String receiverWard,
 
-        @NotNull(message = "Tọa độ Lat người nhận không được để trống")
+        //@NotNull(message = "Tọa độ Lat người nhận không được để trống")
         Double receiverLat,
 
-        @NotNull(message = "Tọa độ Lng người nhận không được để trống")
+        //@NotNull(message = "Tọa độ Lng người nhận không được để trống")
         Double receiverLng,
 
         // Người gửi
@@ -52,16 +55,16 @@ public record OrderRequest(
         @NotBlank(message = "Tỉnh/Thành gửi không được để trống")
         String senderProvince,
 
-        @NotBlank(message = "Quận/Huyện gửi không được để trống")
-        String senderDistrict,
+        @NotNull(message = "Quận/Huyện gửi không được để trống")
+        HanoiDistrict senderDistrict,
 
         @NotBlank(message = "Phường/Xã gửi không được để trống")
         String senderWard,
 
-        @NotNull(message = "Tọa độ Lat người gửi không được để trống")
+        //@NotNull(message = "Tọa độ Lat người gửi không được để trống")
         Double senderLat,
 
-        @NotNull(message = "Tọa độ Lng người gửi không được để trống")
+        //@NotNull(message = "Tọa độ Lng người gửi không được để trống")
         Double senderLng,
 
         // Hàng hoá
@@ -91,11 +94,11 @@ public record OrderRequest(
 
         @NotNull(message = "Tiền COD không được để trống")
         @Min(value = 0, message = "Tiền COD không được âm")
-        Double codAmount,
+        BigDecimal codAmount,
 
         @NotNull(message = "Giá trị hàng hóa không được để trống")
         @Min(value = 0, message = "Giá trị hàng hóa không được âm")
-        Double orderValue,
+        BigDecimal orderValue,
 
         // Dịch vụ & Thanh toán
         @NotNull(message = "Vui lòng chọn loại dịch vụ")

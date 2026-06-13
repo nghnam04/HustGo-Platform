@@ -7,7 +7,8 @@ public record DeliveryStatusRequest(
         @NotNull(message = "Kết quả giao hàng không được để trống")
         DeliveryResult result,
 
-        String proofImageUrl, // Ảnh xác nhận (SUCCESS)
-        String failReason,     // Lý do (FAILED)
+        String proofImageUrl, //SUCCESS
+        String failReason,  // FAILED
         boolean isMoneyCollected
-) {}
+) {
+}

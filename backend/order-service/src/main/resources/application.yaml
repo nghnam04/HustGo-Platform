@@ -47,6 +47,8 @@ app:
     topics:
       order-events: order-events
       payment-events: payment-events
+      route-events: route-events
+      feedback-events: feedback-events
 
 eureka:
   client:
@@ -70,10 +72,19 @@ resilience4j:
         permittedNumberOfCallsInHalfOpenState: 3
         slidingWindowSize: 10
 
-# Retry configuration
+  # Retry configuration
   retry:
     instances:
       order-service:
         maxRetryAttempts: 3
         waitDuration: 2s
+
+hubs:
+  service-url: http://hub-service/api/internal/hubs
+
+routing:
+  service-url: http://routing-service/api/routing
+
+payment:
+  service-url: http://payment-service/api/payments/initiate/
 

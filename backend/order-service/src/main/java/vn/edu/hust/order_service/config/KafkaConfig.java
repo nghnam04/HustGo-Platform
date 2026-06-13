@@ -15,6 +15,9 @@ public class KafkaConfig {
     @Value("${app.kafka.topics.payment-events}")
     private String paymentTopicName;
 
+    @Value("${app.kafka.topics.feedback-events}")
+    private String feedbackTopicName;
+
     // Bắn các thay đổi trạng thái đơn hàng (Producer)
     @Bean
     public NewTopic orderEventsTopic() {
@@ -28,6 +31,15 @@ public class KafkaConfig {
     @Bean
     public NewTopic paymentEventsTopic() {
         return TopicBuilder.name(paymentTopicName)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    // Feedback events (Producer)
+    @Bean
+    public NewTopic feedbackEventsTopic() {
+        return TopicBuilder.name(feedbackTopicName)
                 .partitions(3)
                 .replicas(1)
                 .build();
