@@ -1,54 +1,14 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { NavLink } from "react-router-dom";
-import {
-  Boxes,
-  Navigation,
-  Truck,
-  MapPin,
-  ShieldCheck,
-  FileText,
-  Layers,
-  Users,
-  LogOut,
-  PackagePlus,
-  HelpCircle,
-  AlertTriangle,
-  CreditCard,
-  ClipboardList,
-  ChevronLeft,
-  Menu,
-} from "lucide-react";
-
-const getIcon = (name) => {
-  const iconMap = {
-    "Tạo đơn hàng": PackagePlus,
-    "Lịch sử đơn hàng": ClipboardList,
-    "Thanh toán đơn hàng": CreditCard,
-    "Xác nhận lấy hàng tại Hub": Truck,
-    "Xác nhận thu tiền": ShieldCheck,
-    "Giao hàng": MapPin,
-    "Báo cáo sự cố": AlertTriangle,
-    "Quản lý tồn kho tại Hub": Boxes,
-    "Phân tuyến tối ưu": Navigation,
-    "Danh sách đơn toàn hệ thống": FileText,
-    "Quản lý danh mục HUB (CRUD)": Layers,
-    "Quản lý người dùng & Role": Users,
-  };
-  return iconMap[name] || HelpCircle;
-};
+import { LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import defaultAvatar from "../../assets/default-avatar.jpg";
+import { getIcon } from "../utils/getIcon";
 
 export default function Sidebar({ user, handleLogout, menuConfig }) {
-  // Trạng thái Đóng/Mở (Mặc định mở: true)
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
-  // Link ảnh đại diện mặc định phòng hờ khi link mạng xã hội bị lỗi 403 hoặc null (Đồng bộ với Navbar)
-  const defaultAvatar =
-    "https://avatarngau.sbs/wp-content/uploads/2025/07/avatar-vo-danh-va-sach.jpg";
-
-  // Ép kiểu mảng an toàn, tránh lỗi render
   const userRolesArray = useMemo(() => user?.roles || [], [user?.roles]);
 
-  // Lọc và gộp menu dựa theo danh sách phân quyền
   const currentMenu = useMemo(() => {
     let combinedMenu = [];
     const seenPaths = new Set();
@@ -72,15 +32,14 @@ export default function Sidebar({ user, handleLogout, menuConfig }) {
     return combinedMenu;
   }, [userRolesArray, menuConfig]);
 
-  // Tạo chuỗi hiển thị tên khối phân quyền thân thiện
   const getRoleBadgeName = (roles) => {
     if (roles.length === 0) return "Khách Hàng";
 
     const badgeNames = roles.map((rawRole) => {
       const role = rawRole.replace("ROLE_", "").toUpperCase();
-      if (role === "SUPER_ADMIN" || role === "ADMIN") return "Hệ Thống";
-      if (role === "HUB_ADMIN") return "Quản Trị Hub";
-      if (role === "SHIPPER") return "Đối Tác Rider";
+      if (role === "SUPER_ADMIN") return "Quản trị Hệ Thống";
+      if (role === "HUB_ADMIN") return "Quản Trị Bưu Cục";
+      if (role === "SHIPPER") return "Đối Tác Giao Hàng";
       return "Khách Hàng";
     });
 
@@ -89,31 +48,31 @@ export default function Sidebar({ user, handleLogout, menuConfig }) {
 
   return (
     <>
-      {/* NÚT FLOAT MENU: Xuất hiện khi Sidebar đóng, bám lề trái */}
+      {/* Nút Float Menu*/}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed top-1/6 left-0 -translate-y-1/2 z-30 p-3 bg-white border-y border-r border-slate-200 rounded-r-2xl text-slate-600 shadow-md hover:bg-slate-50 hover:text-[#801B29] transition-all duration-200 cursor-pointer flex items-center justify-center animate-fadeIn group"
+          className="fixed top-1/6 left-0 -translate-y-1/2 z-30 p-2 bg-white/10 border-y border-r border-slate-200 rounded-r-xl text-slate-300 hover:bg-white hover:text-[#801B29] transition-colors duration-200 cursor-pointer flex items-center justify-center animate-fadeIn group"
           title="Mở thanh điều hướng"
         >
-          <Menu
-            size={18}
+          <ChevronRight
+            size={16}
             className="stroke-[2.5] group-hover:scale-110 transition-transform"
           />
         </button>
       )}
 
-      {/* THANH SIDEBAR CHÍNH */}
+      {/* Thanh Sidebar chính */}
       <aside
-        className={`fixed top-16 left-0 h-[calc(100vh-64px)] bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 text-slate-600 z-20 text-left transition-all duration-300 ease-in-out overflow-hidden ${
+        className={`fixed top-16 left-0 h-[calc(100vh-64px)] bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 text-slate-600 z-30 text-left transition-all duration-300 ease-in-out overflow-hidden ${
           isOpen
-            ? "w-64 opacity-100 translate-x-0"
+            ? "w-50 md:w-64 lg:w-64 opacity-100 translate-x-0"
             : "w-0 opacity-0 -translate-x-full"
         }`}
       >
-        {/* PHẦN TRÊN: Khu vực Header & Điều hướng */}
-        <div className="flex flex-col flex-1 overflow-hidden min-w-[256px]">
-          {/* Header: Khối phân quyền và Nút đóng */}
+        {/* Khu vực Header & Điều hướng */}
+        <div className="flex flex-col flex-1 overflow-hidden min-w-[200px] md:min-w-[256px] lg:min-w-[256px]">
+          {/* Khối phân quyền và Nút đóng */}
           <div className="pt-4 px-4 flex items-center justify-between gap-2 shrink-0">
             <div className="overflow-hidden flex-1">
               <span className="inline-block text-[10px] font-bold text-[#801B29] bg-[#801B29]/5 border border-[#801B29]/20 px-2.5 py-1 rounded-md uppercase tracking-wider max-w-full break-words">
@@ -167,10 +126,9 @@ export default function Sidebar({ user, handleLogout, menuConfig }) {
           </nav>
         </div>
 
-        {/* PHẦN DƯỚI: Thông tin User & Đăng xuất (Ghim cố định đáy Sidebar) */}
-        <div className="p-4 border-t border-slate-200 bg-slate-50/80 flex flex-col gap-3 shrink-0 min-w-[256px]">
+        {/* Thông tin User & Đăng xuất  */}
+        <div className="p-4 border-t border-slate-200 bg-slate-50/80 flex flex-col gap-3 shrink-0 min-w-[200px] md:min-w-[256px] lg:min-w-[256px]">
           <div className="flex items-center gap-3 px-1">
-            {/* THAY ĐỔI: Sử dụng thẻ img trực tiếp kết hợp defaultAvatar và xử lý sự kiện onError */}
             <img
               src={user?.avatarUrl || defaultAvatar}
               alt="User Avatar"
@@ -183,7 +141,7 @@ export default function Sidebar({ user, handleLogout, menuConfig }) {
 
             <div className="overflow-hidden text-left">
               <p className="text-xs font-bold text-slate-800 truncate">
-                {user?.fullName || user?.username || "Thành viên"}
+                {user?.fullName || user?.username || "Người dùng hệ thống"}
               </p>
               <p className="text-[10px] text-slate-400 font-medium truncate mt-0.5">
                 {user?.email || "Chưa có email"}
@@ -200,7 +158,6 @@ export default function Sidebar({ user, handleLogout, menuConfig }) {
         </div>
       </aside>
 
-      {/* ĐỆM RỘNG ĐỘNG: Đẩy nội dung trang chủ (Layout bọc ngoài) tránh đè văn bản */}
       <div
         className={`hidden md:block shrink-0 transition-all duration-300 ease-in-out ${
           isOpen ? "w-64" : "w-0"

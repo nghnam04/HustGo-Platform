@@ -42,9 +42,10 @@ import RouteMonitoring from "./pages/hub/RouteMonitoring";
 // SUPER_ADMIN Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminOrderList from "./pages/admin/AdminOrderList";
-import AdminOrderDetail from "./pages/admin/AdminOrderDetail";
+
 import AdminHubManagement from "./pages/admin/AdminHubManagement";
 import AdminUserManagement from "./pages/admin/AdminUserManagement";
+
 import FeedbackManagement from "./pages/admin/FeedbackManagement";
 import CreateHubForm from "./pages/admin/CreateHubForm";
 import EditHubForm from "./pages/admin/EditHubForm";
@@ -248,10 +249,6 @@ const App = () => {
                       element={<AdminDashboard />}
                     />
                     <Route path="/admin/orders" element={<AdminOrderList />} />
-                    <Route
-                      path="/admin/orders/:orderId"
-                      element={<AdminOrderDetail />}
-                    />
                     <Route
                       path="/admin/hubs"
                       element={<AdminHubManagement />}
