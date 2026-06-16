@@ -1,0 +1,12 @@
+export const STATUS_TABS = [
+  "ALL",
+  "PENDING",
+  "CREATED",
+  "COLLECTED",
+  "IN_TRANSIT",
+  "AT_HUB",
+  "PICKING",
+  "DELIVERING",
+  "COMPLETED",
+  "CANCELLED",
+];
