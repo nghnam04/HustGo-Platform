@@ -108,8 +108,6 @@ export default function Navbar({ user, handleLogout }) {
     stompClient.connect(
       {},
       (frame) => {
-        console.log(`WebSocket kết nối thành công`, frame);
-
         // Đơn hàng
         stompClient.subscribe(`/topic/orders/${user.id}`, (message) => {
           if (message.body) {
@@ -641,7 +639,7 @@ export default function Navbar({ user, handleLogout }) {
                         {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
                       </button>
 
-                      {/* Desktop: show both buttons */}
+                      {/* Login/Register */}
                       <div className="hidden md:flex items-center gap-3">
                         <Link
                           to="/login"
@@ -657,7 +655,7 @@ export default function Navbar({ user, handleLogout }) {
                         </Link>
                       </div>
 
-                      {/* Mobile Menu Dropdown - inside parent, stays with navbar on scroll */}
+                      {/* Mobile Menu Dropdown */}
                       {mobileMenuOpen && (
                         <div className="md:hidden absolute right-0 top-full z-[110] bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden py-1.5 text-left min-w-[180px]">
                           <Link

@@ -13,7 +13,7 @@ const decodePolyline = (encoded, precision = 5) => {
       result |= (byte & 0x1f) << shift;
       shift += 5;
     } while (byte >= 0x20);
-    const deltaLat = result & 1 ? ~(result >> 1) : result >> 1;
+    const deltaLat = (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
     lat += deltaLat;
     result = 0;
     shift = 0;
@@ -22,7 +22,7 @@ const decodePolyline = (encoded, precision = 5) => {
       result |= (byte & 0x1f) << shift;
       shift += 5;
     } while (byte >= 0x20);
-    const deltaLng = result & 1 ? ~(result >> 1) : result >> 1;
+    const deltaLng = (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
     lng += deltaLng;
     coordinates.push([lat / factor, lng / factor]);
   }
