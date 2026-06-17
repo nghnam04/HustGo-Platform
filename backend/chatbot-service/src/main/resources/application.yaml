@@ -1,0 +1,55 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: chatbot-service
+  ai:
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY}
+        chat:
+          options:
+            model: gemini-2.5-flash
+            temperature: 0.7
+            max-output-tokens: 1024
+    retry:
+      max-attempts: 1
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 604800000
+
+# Microservice URLs
+orders:
+  service-url: http://order-service/api/orders
+feedbacks:
+  service-url: http://order-service/api/feedbacks
+hubs:
+  internal-url: http://hub-service/api/internal/hubs   # Internal
+  service-url: http://hub-service/api/hubs             # HUB_ADMIN + SUPER_ADMIN
+  admin-url: http://hub-service/api/super-admin/hubs   # SUPER_ADMIN only
+auth:
+  service-url: http://auth-service/api/users
+
+# Resilience4j configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      chatbot-service:
+        failureRateThreshold: 50
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 5s
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowSize: 10
+  retry:
+    instances:
+      chatbot-service:
+        maxRetryAttempts: 3
+        waitDuration: 2s
