@@ -76,7 +76,7 @@ public class TrackingService {
         redisTemplate.opsForHash().put(key, "lng", String.valueOf(lng));
         redisTemplate.opsForHash().put(key, "orderId", orderId);
         redisTemplate.opsForHash().put(key, "updatedAt", LocalDateTime.now().toString());
-        redisTemplate.expire(key, 1, TimeUnit.HOURS);
+        redisTemplate.expire(key, 30, TimeUnit.SECONDS);
 
         log.info("Shipper {} realtime location updated: [{}, {}], orderId: {}", shipperId, lat, lng, orderId);
     }

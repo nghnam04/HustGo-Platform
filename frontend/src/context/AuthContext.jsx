@@ -2,6 +2,8 @@ import { createContext, useState, useEffect, useMemo } from "react";
 import authService from "../services/authService";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
+import trackingService from "../services/trackingService";
+import orderService from "../services/orderService";
 
 export const AuthContext = createContext(null);
 
@@ -197,6 +199,62 @@ const AuthProvider = ({ children }) => {
       ? { name: user.roles[0] }
       : user.role
     : { name: "GUEST" };
+
+  useEffect(() => {
+    if (!token || !user) return;
+    const isShipper = user.roles?.includes("SHIPPER") || user.role?.name === "SHIPPER";
+    if (!isShipper || gpsStatus !== "granted") return;
+
+    let intervalId = null;
+
+    const runTracker = async () => {
+      if (sessionStorage.getItem("gps_paused") === "true") return;
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          const shipperId = user.id || user.userId;
+
+          try {
+            const [pickRes, delivRes] = await Promise.all([
+              orderService.getMyShipperOrders({ status: "PICKING" }).catch(() => ({ data: [] })),
+              orderService.getMyShipperOrders({ status: "DELIVERING" }).catch(() => ({ data: [] })),
+            ]);
+
+            const pendingOrders = [
+              ...(Array.isArray(pickRes.data) ? pickRes.data : pickRes.data?.content || []),
+              ...(Array.isArray(delivRes.data) ? delivRes.data : delivRes.data?.content || []),
+            ];
+
+            if (pendingOrders.length === 0) return;
+
+            const delivOrd = pendingOrders.find((o) => o.status === "DELIVERING") || pendingOrders[0];
+            if (delivOrd) {
+              await trackingService.updateShipperLocation(shipperId, {
+                orderId: delivOrd.id,
+                lat,
+                lng,
+              });
+            }
+          } catch (err) {
+            console.error("Global tracking error:", err);
+          }
+        },
+        (err) => {
+          console.error("Global geolocation error:", err);
+        },
+        { enableHighAccuracy: false, timeout: 5000 }
+      );
+    };
+
+    runTracker();
+    intervalId = setInterval(runTracker, 10000);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [user, token, gpsStatus]);
 
   const value = useMemo(
     () => ({

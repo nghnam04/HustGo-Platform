@@ -22,7 +22,6 @@ import {
   Map,
 } from "lucide-react";
 import orderService from "../../services/orderService";
-import trackingService from "../../services/trackingService";
 import routingService from "../../services/routingService";
 import useAuth from "../../hooks/useAuth";
 import getRouteGeometry from "../../components/utils/getRouteGeometry";
@@ -333,19 +332,6 @@ export default function ActiveDelivery() {
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
           const newPos = { lat, lng };
-
-          const delivOrd =
-            pendingOrders.find((o) => o.status === "DELIVERING") ||
-            pendingOrders[0];
-          if (delivOrd) {
-            trackingService
-              .updateShipperLocation(shipperId, {
-                orderId: delivOrd.id,
-                lat,
-                lng,
-              })
-              .catch(() => {});
-          }
 
           setShipperPos(newPos);
           recalcRoute(lat, lng);
