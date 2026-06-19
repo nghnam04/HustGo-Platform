@@ -1,4 +1,4 @@
-# 🚚 HustGo - Hệ quản lý mạng lưới giao hàng chặng cuối thời gian thực phạm vi thành phố Hà Nội
+# 🚚 HustGo - Hệ thống quản lý mạng lưới giao hàng chặng cuối thời gian thực phạm vi thành phố Hà Nội
 
 ## 🌐 Giới thiệu
 
