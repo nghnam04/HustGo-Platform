@@ -61,9 +61,14 @@ spring:
             - id: notification-service
               uri: lb://notification-service
               predicates:
-                - Path=/api/notifications/**, /ws-notifications/**
+                - Path=/api/notifications/**
               filters:
                 - name: AuthenticationFilter
+
+            - id: notification-service-ws
+              uri: lb://notification-service
+              predicates:
+                - Path=/ws-notifications/**
 
             - id: payment-service
               uri: lb://payment-service

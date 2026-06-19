@@ -38,7 +38,7 @@ hubs:
 auth:
   service-url: http://auth-service/api/users
 
-# Resilience4j configuration
+# Resilience4j 
 resilience4j:
   circuitbreaker:
     instances:

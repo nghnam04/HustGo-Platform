@@ -37,3 +37,4 @@ out
 
 backend/data/
 .env
+k8s/secrets.yaml
