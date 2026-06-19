@@ -52,7 +52,7 @@ export default function Sidebar({ user, handleLogout, menuConfig }) {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed top-1/6 left-0 -translate-y-1/2 z-30 p-2 bg-white/10 border-y border-r border-slate-200 rounded-r-xl text-slate-300 hover:bg-white hover:text-[#801B29] transition-colors duration-200 cursor-pointer flex items-center justify-center animate-fadeIn group"
+          className="fixed top-1/6 left-0 -translate-y-1/2 z-30 p-2 bg-[#a04050] border-y border-r border-[#803040] rounded-r-xl text-white hover:bg-[#803040] transition-colors duration-200 cursor-pointer flex items-center justify-center animate-fadeIn group"
           title="Mở thanh điều hướng"
         >
           <ChevronRight
@@ -64,11 +64,10 @@ export default function Sidebar({ user, handleLogout, menuConfig }) {
 
       {/* Thanh Sidebar chính */}
       <aside
-        className={`fixed top-16 left-0 h-[calc(100vh-64px)] bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 text-slate-600 z-30 text-left transition-all duration-300 ease-in-out overflow-hidden ${
-          isOpen
-            ? "w-50 md:w-64 lg:w-64 opacity-100 translate-x-0"
-            : "w-0 opacity-0 -translate-x-full"
-        }`}
+        className={`fixed top-16 left-0 h-[calc(100vh-64px)] bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 text-slate-600 z-30 text-left transition-all duration-300 ease-in-out overflow-hidden ${isOpen
+          ? "w-50 md:w-64 lg:w-64 opacity-100 translate-x-0"
+          : "w-0 opacity-0 -translate-x-full"
+          }`}
       >
         {/* Khu vực Header & Điều hướng */}
         <div className="flex flex-col flex-1 overflow-hidden min-w-[200px] md:min-w-[256px] lg:min-w-[256px]">
@@ -101,12 +100,11 @@ export default function Sidebar({ user, handleLogout, menuConfig }) {
                   key={index}
                   to={item.path}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl transition-all duration-150 ${
-                      item.isPending
-                        ? "text-slate-300 cursor-not-allowed italic"
-                        : isActive
-                          ? "bg-[#801B29]/10 text-[#801B29]"
-                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    `flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl transition-all duration-150 ${item.isPending
+                      ? "text-slate-300 cursor-not-allowed italic"
+                      : isActive
+                        ? "bg-[#801B29]/10 text-[#801B29]"
+                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                     }`
                   }
                   onClick={(e) => item.isPending && e.preventDefault()}
@@ -159,9 +157,8 @@ export default function Sidebar({ user, handleLogout, menuConfig }) {
       </aside>
 
       <div
-        className={`hidden md:block shrink-0 transition-all duration-300 ease-in-out ${
-          isOpen ? "w-64" : "w-0"
-        }`}
+        className={`hidden md:block shrink-0 transition-all duration-300 ease-in-out ${isOpen ? "w-64" : "w-0"
+          }`}
       />
     </>
   );

@@ -14,7 +14,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // ws://localhost:8084/ws-notifications
         registry.addEndpoint("/ws-notifications").setAllowedOriginPatterns("http://localhost:5173",
-                "https://hustgo.vercel.app").withSockJS();
+                "https://hustgo.vercel.app", "https://hustgo.id.vn").withSockJS();
     }
 
     @Override

@@ -305,6 +305,7 @@ export default function EditOrder() {
     if (fieldErrors[name]) {
       setFieldErrors((prev) => ({ ...prev, [name]: "" }));
     }
+    setPricing(null);
   };
 
   const handleFileChange = (e) => {
@@ -1118,8 +1119,8 @@ export default function EditOrder() {
 
           <button
             type="submit"
-            disabled={loading}
-            className="h-11 bg-[#801B29] hover:bg-[#63141F] text-white text-sm font-bold rounded-xl shadow-sm hover:shadow-lg hover:shadow-[#801B29]/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 px-6 sm:px-10"
+            disabled={loading || !pricing}
+            className="h-11 bg-[#801B29] hover:bg-[#63141F] text-white text-sm font-bold rounded-xl shadow-sm hover:shadow-lg hover:shadow-[#801B29]/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed px-6 sm:px-10"
           >
             {loading ? "Đang cập nhật..." : "Cập nhật đơn hàng"}
           </button>

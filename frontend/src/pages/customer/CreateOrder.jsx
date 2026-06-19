@@ -227,6 +227,7 @@ export default function CreateOrder() {
     if (fieldErrors[name]) {
       setFieldErrors((prev) => ({ ...prev, [name]: "" }));
     }
+    setPricing(null);
   };
 
   const handleFileChange = (e) => {
@@ -1080,20 +1081,20 @@ export default function CreateOrder() {
           </div>
         )}
 
-        <div className="flex justify-end gap-4 pt-4">
+        <div className="flex justify-end gap-3 sm:gap-4 pt-4">
           <button
             type="button"
             onClick={handleViewPrice}
             disabled={priceLoading || loading}
-            className="btn-ghost px-8 py-3 text-sm font-semibold border border-slate-300 hover:bg-slate-50"
+            className="h-11 btn-ghost px-6 sm:px-8 text-sm font-bold border border-slate-300 hover:bg-slate-50 flex items-center justify-center"
           >
             {priceLoading ? "Đang tính giá..." : "Xem giá đơn hàng"}
           </button>
 
           <button
             type="submit"
-            disabled={loading}
-            className="btn-primary px-10 py-3 text-sm disabled:opacity-70"
+            disabled={loading || !pricing}
+            className="h-11 bg-[#801B29] hover:bg-[#63141F] text-white text-sm font-bold rounded-xl shadow-sm hover:shadow-lg hover:shadow-[#801B29]/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed px-6 sm:px-10"
           >
             {loading ? "Đang xử lý..." : "Xác nhận tạo đơn hàng"}
           </button>

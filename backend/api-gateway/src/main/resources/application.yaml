@@ -14,6 +14,7 @@ spring:
               '[/**]':
                 allowedOrigins:
                   - "http://localhost:5173"
+                  - "https://hustgo.id.vn"
                 allowedMethods:
                   - OPTIONS
                   - GET
