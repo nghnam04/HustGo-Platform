@@ -1,0 +1,101 @@
+name: Deploy Backend Services to GKE
+
+on:
+  push:
+    branches:
+      - prod
+    paths:
+      - 'backend/**'
+
+env:
+  PROJECT_ID: hustgo-492614
+  GAR_LOCATION: asia-northeast1
+  GKE_CLUSTER: cluster-hustgo
+  GKE_ZONE: asia-northeast1-c
+  NAMESPACE: hustgo
+  REPOSITORY: hustgo
+
+jobs:
+  detect-changes:
+    name: Detect Changed Services
+    runs-on: ubuntu-latest
+    # Xuất ra mảng JSON chứa danh sách các thư mục có sự thay đổi
+    outputs:
+      services: ${{ steps.filter.outputs.changes }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Lọc các thư mục bị thay đổi
+      uses: dorny/paths-filter@v3
+      id: filter
+      with:
+        filters: |
+          api-gateway: 'backend/api-gateway/**'
+          auth-service: 'backend/auth-service/**'
+          chatbot-service: 'backend/chatbot-service/**'
+          config-server: 'backend/config-server/**'
+          hub-service: 'backend/hub-service/**'
+          notification-service: 'backend/notification-service/**'
+          order-service: 'backend/order-service/**'
+          payment-service: 'backend/payment-service/**'
+          routing-service: 'backend/routing-service/**'
+          service-registry: 'backend/service-registry/**'
+          tracking-service: 'backend/tracking-service/**'
+
+  build-and-deploy:
+    name: Build & Deploy Backend
+    needs: detect-changes
+    # CỰC KỲ QUAN TRỌNG: Chỉ chạy Job này nếu danh sách services thay đổi KHÔNG BỊ RỖNG.
+    if: ${{ needs.detect-changes.outputs.services != '[]' && needs.detect-changes.outputs.services != '' }}
+    runs-on: ubuntu-latest
+    
+    # Ma trận động: Đọc danh sách mảng JSON từ Job Thám báo ở trên
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJSON(needs.detect-changes.outputs.services) }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Configure Docker to use GAR
+      run: |
+        gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev
+
+    - name: Get GKE credentials
+      uses: google-github-actions/get-gke-credentials@v2
+      with:
+        cluster_name: ${{ env.GKE_CLUSTER }}
+        location: ${{ env.GKE_ZONE }}
+
+    - name: Build and Push Docker Image
+      run: |
+        cd backend
+        IMAGE_TAG=${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ matrix.service }}:${{ github.sha }}
+        IMAGE_LATEST=${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ matrix.service }}:latest
+        
+        docker build \
+          --build-arg SERVICE_NAME=${{ matrix.service }} \
+          -f ${{ matrix.service }}/Dockerfile \
+          -t $IMAGE_TAG \
+          -t $IMAGE_LATEST \
+          .
+          
+        docker push $IMAGE_TAG
+        docker push $IMAGE_LATEST
+
+    - name: Deploy to GKE
+      run: |
+        kubectl set image deployment/${{ matrix.service }} ${{ matrix.service }}=${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ matrix.service }}:${{ github.sha }} -n ${{ env.NAMESPACE }}
+        
+        kubectl rollout status deployment/${{ matrix.service }} -n ${{ env.NAMESPACE }}
