@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: osrm
+  namespace: hustgo
+  labels:
+    app: osrm
+spec:
+  strategy:
+    type: Recreate
+  replicas: 1
+  selector:
+    matchLabels:
+      app: osrm
+  template:
+    metadata:
+      labels:
+        app: osrm
+    spec:
+      initContainers:
+        - name: download-osrm-data
+          image: google/cloud-sdk:slim
+          command:
+            - sh
+            - -c
+            - |
+              if [ ! -f /data/hanoi-latest.osrm ]; then
+                echo "Downloading OSRM data from GCS..."
+                gsutil -m cp "gs://hustgo-osrm-data/osrm-data/*" /data/
+                echo "Download complete."
+              else
+                echo "OSRM data already exists, skipping download."
+              fi
+          volumeMounts:
+            - name: osrm-data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "20m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      containers:
+        - name: osrm
+          image: osrm/osrm-backend:latest
+          command:
+            - osrm-routed
+            - --algorithm
+            - mld
+            - /data/hanoi-latest.osrm
+          ports:
+            - containerPort: 5000
+              protocol: TCP
+          volumeMounts:
+            - name: osrm-data
+              mountPath: /data
+              readOnly: true
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "20m"
+            limits:
+              memory: "768Mi"
+              cpu: "500m"
+          livenessProbe:
+            tcpSocket:
+              port: 5000
+            initialDelaySeconds: 60
+            periodSeconds: 15
+          readinessProbe:
+            tcpSocket:
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 5
+      volumes:
+        - name: osrm-data
+          persistentVolumeClaim:
+            claimName: osrm-data-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: osrm
+  namespace: hustgo
+  labels:
+    app: osrm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5000
+      targetPort: 5000
+      protocol: TCP
+      name: http
+  selector:
+    app: osrm
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: osrm-data-pvc
+  namespace: hustgo
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi

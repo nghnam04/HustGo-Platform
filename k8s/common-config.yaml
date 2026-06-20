@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hustgo-common-config
+  namespace: hustgo
+data:
+  SPRING_PROFILES_ACTIVE: "default"
+  EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://service-registry:8761/eureka/"
+  EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  SPRING_DATA_REDIS_HOST: "redis"
+  SPRING_DATA_REDIS_PORT: "6379"
+  SPRING_DATA_REDIS_URL: "redis://redis:6379"
+  AUTH_SERVICE_URL: "http://auth-service:8080"
+  ROUTING_SERVICE_URL: "http://routing-service:8086/api/routing"
+  APP_OSRM_BASE_URL: "http://osrm:5000"
+  MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-initdb
+  namespace: hustgo
+data:
+  01-create-databases.sql: |
+    CREATE DATABASE hustgo_auth_db;
+    CREATE DATABASE hustgo_order_db;
+    CREATE DATABASE hustgo_hub_db;
+    CREATE DATABASE hustgo_tracking_db;

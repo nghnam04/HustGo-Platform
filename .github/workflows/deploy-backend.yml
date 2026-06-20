@@ -19,7 +19,6 @@ jobs:
   detect-changes:
     name: Detect Changed Services
     runs-on: ubuntu-latest
-    # Xuất ra mảng JSON chứa danh sách các thư mục có sự thay đổi
     outputs:
       services: ${{ steps.filter.outputs.changes }}
     steps:
@@ -46,11 +45,10 @@ jobs:
   build-and-deploy:
     name: Build & Deploy Backend
     needs: detect-changes
-    # CỰC KỲ QUAN TRỌNG: Chỉ chạy Job này nếu danh sách services thay đổi KHÔNG BỊ RỖNG.
+
     if: ${{ needs.detect-changes.outputs.services != '[]' && needs.detect-changes.outputs.services != '' }}
     runs-on: ubuntu-latest
     
-    # Ma trận động: Đọc danh sách mảng JSON từ Job Thám báo ở trên
     strategy:
       fail-fast: false
       matrix:

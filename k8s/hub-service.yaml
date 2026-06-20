@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hub-service
+  namespace: hustgo
+  labels:
+    app: hub-service
+spec:
+  strategy:
+    type: Recreate
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hub-service
+  template:
+    metadata:
+      labels:
+        app: hub-service
+    spec:
+      containers:
+        - name: hub-service
+          image: asia-northeast1-docker.pkg.dev/hustgo-492614/hustgo/hub-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8082
+          envFrom:
+            - configMapRef:
+                name: hustgo-common-config
+            - configMapRef:
+                name: hub-service-config
+            - secretRef:
+                name: hustgo-app-secrets
+          env:
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secrets
+                  key: username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secrets
+                  key: password
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=70.0 -XX:+UseG1GC -XX:+UseStringDeduplication -Deureka.client.serviceUrl.defaultZone=http://service-registry:8761/eureka/"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "20m"
+            limits:
+              memory: "512Mi"
+              cpu: "400m"
+          startupProbe:
+            tcpSocket:
+              port: 8082
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 150
+          readinessProbe:
+            tcpSocket:
+              port: 8082
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8082
+            initialDelaySeconds: 15
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hub-service
+  namespace: hustgo
+  labels:
+    app: hub-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8082
+      targetPort: 8082
+      protocol: TCP
+      name: http
+  selector:
+    app: hub-service
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hub-service-config
+  namespace: hustgo
+data:
+  SERVER_PORT: "8082"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/hustgo_hub_db"
