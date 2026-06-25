@@ -100,7 +100,7 @@ public class PaymentService {
                 "&orderId=" + paymentOrderId +
                 "&orderInfo=" + orderInfo +
                 "&partnerCode=" + partnerCode +
-                "&redirectUrl=" + frontendRedirectUrl +
+                "&redirectUrl=" + callbackUrl +
                 "&requestId=" + requestId +
                 "&requestType=payWithATM";
 
@@ -113,7 +113,7 @@ public class PaymentService {
         body.put("amount", amount);
         body.put("orderId", paymentOrderId);
         body.put("orderInfo", orderInfo);
-        body.put("redirectUrl", frontendRedirectUrl);
+        body.put("redirectUrl", callbackUrl);
         body.put("ipnUrl", callbackUrl);
         body.put("extraData", customerId);
         body.put("requestType", "payWithATM");
