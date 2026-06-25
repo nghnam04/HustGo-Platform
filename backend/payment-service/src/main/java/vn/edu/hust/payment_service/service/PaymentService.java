@@ -102,7 +102,7 @@ public class PaymentService {
                 "&partnerCode=" + partnerCode +
                 "&redirectUrl=" + frontendRedirectUrl +
                 "&requestId=" + requestId +
-                "&requestType=captureWallet";
+                "&requestType=payWithATM";
 
         String signature = PaymentUtils.hmacSHA256(rawHash, secretKey);
 
@@ -116,7 +116,7 @@ public class PaymentService {
         body.put("redirectUrl", frontendRedirectUrl);
         body.put("ipnUrl", callbackUrl);
         body.put("extraData", customerId);
-        body.put("requestType", "captureWallet");
+        body.put("requestType", "payWithATM");
         body.put("signature", signature);
         body.put("lang", "vi");
 

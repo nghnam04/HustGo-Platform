@@ -53,4 +53,4 @@ payment:
     secret-key: ${MOMO_SECRET_KEY}
     callback-url: ${PAYMENT_CALLBACK_URL:http://localhost:9191/api/payments/callback}
   mock:
-    enabled: true
+    enabled: false
