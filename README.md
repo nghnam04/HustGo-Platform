@@ -2,7 +2,7 @@
 
 ## 🌐 Giới thiệu
 
-HustGo là hệ thống giao vận đa nền tảng, thời gian thực, tối ưu hóa mạng lưới giao hàng cuối mile (last-mile delivery). Hệ thống kết nối khách hàng, shipper, quản trị bưu cục và quản trị hệ thống trong một hệ sinh thái logistics hiện đại được triển khai hoàn toàn trên nền tảng Kubernetes.
+HustGo là hệ thống giao vận đa nền tảng, thời gian thực, tối ưu hóa mạng lưới giao hàng chặng cuối. Hệ thống kết nối khách hàng, shipper, quản trị bưu cục và quản trị hệ thống trong một hệ sinh thái logistics hiện đại được triển khai hoàn toàn trên nền tảng Kubernetes.
 
 ## 🚀 Tính năng
 
