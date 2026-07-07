@@ -396,8 +396,8 @@ public class OrderService {
             throw new OrderStatusException("Không tìm thấy đơn hàng nào để phân tuyến");
         }
 
-        if (orders.size() < 5 || orders.size() > 10) {
-            throw new OrderStatusException("Mỗi tuyến cần từ 5 đến 10 đơn hàng (hiện tại: " + orders.size() + " đơn)");
+        if (orders.size() < 5 || orders.size() > 20) {
+            throw new OrderStatusException("Mỗi tuyến cần từ 5 đến 20 đơn hàng (hiện tại: " + orders.size() + " đơn)");
         }
 
         for (Order order : orders) {

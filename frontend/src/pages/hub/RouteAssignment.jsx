@@ -99,6 +99,7 @@ export default function RouteAssignment() {
   const [previewing, setPreviewing] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [nearbyShippers, setNearbyShippers] = useState(null);
+  const [suggestCount, setSuggestCount] = useState(10);
 
   const previewMapRef = useRef(null);
   const previewMapInstance = useRef(null);
@@ -342,7 +343,48 @@ export default function RouteAssignment() {
     return selectedOrders.filter((o) => !o.lat || !o.lng);
   }, [selectedOrders]);
 
-  const isValid = selected.length >= 5 && selected.length <= 10;
+  const isValid = selected.length >= 5 && selected.length <= 20;
+
+  // Nearest-neighbor clustering: chọn n đơn gần nhau nhất, bắt đầu từ hub
+  const handleSuggestSmart = () => {
+    const candidateOrders = filtered.filter((o) => o.lat && o.lng);
+    if (candidateOrders.length < 5) {
+      showToast("Không đủ đơn có toạ độ để gợi ý (cần ít nhất 5)", "error");
+      return;
+    }
+
+    const n = Math.min(suggestCount, candidateOrders.length);
+    const seed = { lat: HUB_LAT || candidateOrders[0].lat, lng: HUB_LNG || candidateOrders[0].lng };
+
+    const calcDist = (a, b) => {
+      const R = 6371000;
+      const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+      const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+      const sinDLat = Math.sin(dLat / 2);
+      const sinDLng = Math.sin(dLng / 2);
+      const x = sinDLat * sinDLat + Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * sinDLng * sinDLng;
+      return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+    };
+
+    const remaining = [...candidateOrders];
+    const chosen = [];
+    let current = seed;
+
+    while (chosen.length < n && remaining.length > 0) {
+      let bestIdx = 0;
+      let bestDist = calcDist(current, remaining[0]);
+      for (let i = 1; i < remaining.length; i++) {
+        const d = calcDist(current, remaining[i]);
+        if (d < bestDist) { bestDist = d; bestIdx = i; }
+      }
+      const next = remaining.splice(bestIdx, 1)[0];
+      chosen.push(next);
+      current = next;
+    }
+
+    setSelected(chosen.map((o) => o.id));
+    showToast(`Đã gợi ý ${chosen.length} đơn gần nhau nhất từ hub`, "success");
+  };
 
   const handlePreview = async () => {
     if (!isValid || !hub) return;
@@ -449,7 +491,7 @@ export default function RouteAssignment() {
                 Phân tuyến giao hàng
               </h1>
               <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-                Chọn 5–10 đơn tồn kho để tạo một tuyến giao cho Shipper
+                Chọn 5–20 đơn tồn kho để tạo một tuyến giao cho Shipper
               </p>
             </div>
             <button
@@ -462,21 +504,30 @@ export default function RouteAssignment() {
 
           {/* Quick actions */}
           <div className="mb-4 flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => {
-                const availableOrders = filtered.map((o) => o.id);
-                const shuffled = [...availableOrders].sort(
-                  () => Math.random() - 0.5,
-                );
-                const random5 = shuffled.slice(0, 5);
-                setSelected(random5);
-              }}
-              disabled={filtered.length < 5}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg border border-slate-200 text-xs sm:text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
-              title="Chọn ngẫu nhiên 5 đơn"
-            >
-              <Shuffle size={14} /> Ngẫu nhiên 5
-            </button>
+            {/* Smart suggest block */}
+            <div className="flex items-center gap-2 bg-white border border-indigo-200 rounded-xl px-3 py-2 shadow-sm">
+              <Shuffle size={15} className="text-indigo-500 shrink-0" />
+              <span className="text-xs font-semibold text-slate-600 whitespace-nowrap">Số đơn:</span>
+              <input
+                type="range"
+                min={5}
+                max={20}
+                step={1}
+                value={suggestCount}
+                onChange={(e) => setSuggestCount(Number(e.target.value))}
+                className="w-24 sm:w-32 accent-indigo-600"
+              />
+              <span className="text-xs font-bold text-indigo-700 w-5 text-center">{suggestCount}</span>
+              <button
+                onClick={handleSuggestSmart}
+                disabled={filtered.filter((o) => o.lat && o.lng).length < 5}
+                className="ml-1 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                title="Gợi ý các đơn gần nhau nhất dựa trên vị trí địa lý"
+              >
+                Gợi ý thông minh
+              </button>
+            </div>
+
             {selected.length > 0 && (
               <button
                 onClick={() => setSelected([])}
