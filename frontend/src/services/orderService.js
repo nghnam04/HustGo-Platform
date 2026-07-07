@@ -67,6 +67,10 @@ const orderService = {
       `/orders/hub/route/${routeId}/confirm-payment-collection`,
     ),
 
+  // Xác nhận đã nhận lại hàng từ shipper (RETURN_REQUESTED -> RETURNING)
+  hubConfirmReturn: (id) =>
+    axiosInstance.patch(`/orders/${id}/hub/confirm-return`),
+
   // Doanh thu tháng của hub
   getMonthlyRevenueByHub: (hubId, month, year) =>
     axiosInstance.get(`/orders/hub/${hubId}/monthly-revenue`, {

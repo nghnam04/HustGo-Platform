@@ -203,7 +203,7 @@ function ProofLink({ url }) {
   );
 }
 
-function OrderRow({ order }) {
+function OrderRow({ order, onConfirmReturn }) {
   return (
     <tr className="align-top transition hover:bg-slate-50/50">
       <td className="px-4 py-3 font-mono text-xs font-extrabold text-red-700 whitespace-nowrap">
@@ -240,11 +240,21 @@ function OrderRow({ order }) {
       <td className="px-4 py-3 text-right font-semibold text-slate-800 whitespace-nowrap">
         {currency(order.finalAmountToCollect)}
       </td>
+      <td className="px-4 py-3 text-right">
+        {order.status === "RETURN_REQUESTED" && (
+          <button
+            onClick={() => onConfirmReturn(order.id)}
+            className="px-2 py-1 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700 transition"
+          >
+            Xác nhận
+          </button>
+        )}
+      </td>
     </tr>
   );
 }
 
-function OrderMobileCard({ order }) {
+function OrderMobileCard({ order, onConfirmReturn }) {
   return (
     <div className="rounded-xl border border-slate-100 bg-white p-3 shadow-sm">
       <div className="flex items-start justify-between gap-3">
@@ -293,11 +303,22 @@ function OrderMobileCard({ order }) {
           <ProofLink url={order.proofImageUrl} />
         </div>
       )}
+
+      {order.status === "RETURN_REQUESTED" && (
+        <div className="mt-3 flex justify-end">
+          <button
+            onClick={() => onConfirmReturn(order.id)}
+            className="px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition"
+          >
+            Xác nhận nhận
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
-function RouteAccordionCard({ route }) {
+function RouteAccordionCard({ route, onConfirmReturn }) {
   const [expanded, setExpanded] = useState(false);
   const progress =
     route.totalOrders > 0
@@ -390,11 +411,12 @@ function RouteAccordionCard({ route }) {
                   <th className="px-4 py-3">Lý do thất bại</th>
                   <th className="px-4 py-3">Minh chứng</th>
                   <th className="px-4 py-3 text-right">Thu hộ</th>
+                  <th className="px-4 py-3 text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {route.orders.map((order) => (
-                  <OrderRow key={order.id} order={order} />
+                  <OrderRow key={order.id} order={order} onConfirmReturn={onConfirmReturn} />
                 ))}
               </tbody>
             </table>
@@ -403,7 +425,7 @@ function RouteAccordionCard({ route }) {
           {/* Mobile/Tablet Card View */}
           <div className="space-y-3 p-3 lg:hidden bg-slate-50/20">
             {route.orders.map((order) => (
-              <OrderMobileCard key={order.id} order={order} />
+              <OrderMobileCard key={order.id} order={order} onConfirmReturn={onConfirmReturn} />
             ))}
           </div>
         </div>
@@ -464,6 +486,17 @@ export default function RouteMonitoring() {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const handleConfirmReturn = async (id) => {
+    if (!window.confirm("Xác nhận đã nhận lại đơn hàng này từ Shipper?")) return;
+    try {
+      await orderService.hubConfirmReturn(id);
+      fetchData(); // refresh list
+    } catch (err) {
+      console.error(err);
+      alert("Lỗi khi xác nhận hoàn: " + (err.response?.data?.message || err.message));
     }
   };
 
@@ -651,7 +684,7 @@ export default function RouteMonitoring() {
       ) : (
         <div className="space-y-3">
           {filteredRoutes.map((route) => (
-            <RouteAccordionCard key={route.id} route={route} />
+            <RouteAccordionCard key={route.id} route={route} onConfirmReturn={handleConfirmReturn} />
           ))}
         </div>
       )}

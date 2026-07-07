@@ -83,11 +83,11 @@ public class NotificationConsumer {
                             .data(event).build();
                     messagingTemplate.convertAndSend("/topic/shipper/" + event.shipperId(), shipperMsg);
                 }
-                case RETURNING -> {
+                case RETURN_REQUESTED -> {
                     NotificationResponse shipperMsg = NotificationResponse.builder()
                             .type("ORDER")
-                            .status("RETURNING")
-                            .message("Đơn " + event.orderId() + " đã thất bại 2 lần. Vui lòng trả về hub.")
+                            .status("RETURN_REQUESTED")
+                            .message("Đơn " + event.orderId() + " đã được ghi nhận trả về hub. Chờ hub xác nhận nhận lại.")
                             .data(event)
                             .build();
                     messagingTemplate.convertAndSend("/topic/shipper/" + event.shipperId(), shipperMsg);
@@ -119,14 +119,29 @@ public class NotificationConsumer {
                 messagingTemplate.convertAndSend("/topic/hub/" + event.hubAdminId(), assignMsg);
                 log.info("Notify hub_admin {}: phân tuyến {} thành công", event.hubAdminId(), event.routeId());
             }
-            if (event.newStatus() == OrderStatus.RETURNING) {
+            if (event.newStatus() == OrderStatus.RETURN_REQUESTED) {
+                // Thông báo HubAdmin: shipper đang trên đường trả hàng về
                 NotificationResponse hubMsg = NotificationResponse.builder()
-                        .type("ORDER")
-                        .status("RETURNING")
-                        .message("Đơn " + event.orderId() + " thất bại 2 lần đang hoàn về hub.")
+                        .type("RETURN_INCOMING")
+                        .status("RETURN_REQUESTED")
+                        .message("Shipper đang trả đơn " + event.orderId() + " về hub. Chuẩn bị xác nhận nhận lại!")
                         .data(event).build();
                 messagingTemplate.convertAndSend("/topic/hub/" + event.hubId(), hubMsg);
+                log.info("Notify hub_admin tại hub {}: shipper đang trả đơn {} về", event.hubId(), event.orderId());
             }
+        }
+
+        // Notify Customer khi Hub xác nhận đã nhận lại hàng (RETURNING)
+        if (event.newStatus() == OrderStatus.RETURNING && event.customerId() != null) {
+            NotificationResponse customerMsg = NotificationResponse.builder()
+                    .type("ORDER")
+                    .status("RETURNING")
+                    .message("Đơn hàng " + event.orderId() + " đã được hoàn về bưu cục. "
+                            + "Vui lòng đến bưu cục để nhận lại hàng!")
+                    .data(event)
+                    .build();
+            messagingTemplate.convertAndSend("/topic/orders/" + event.customerId(), customerMsg);
+            log.info("Notify customer {}: đơn {} đã về hub, mời ra lấy hàng", event.customerId(), event.orderId());
         }
 
         // Notify Origin hub admin
@@ -188,7 +203,8 @@ public class NotificationConsumer {
             case PICKING -> "Đơn hàng " + event.orderId() + " đã được shipper nhận tuyến";
             case DELIVERING -> "Đơn hàng " + event.orderId() + " đang được giao đến bạn";
             case COMPLETED -> "Đơn hàng " + event.orderId() + " đã giao thành công. Cảm ơn bạn!";
-            case RETURNING -> "Đơn hàng " + event.orderId() + " giao thất bại và đang được hoàn về";
+            case RETURN_REQUESTED -> "Đơn hàng " + event.orderId() + " giao thất bại, shipper đang trả về bưu cục";
+            case RETURNING -> "Đơn hàng " + event.orderId() + " đã về bưu cục. Vui lòng đến nhận lại hàng!";
             case CANCELLED -> "Đơn hàng " + event.orderId() + " đã bị hủy";
             default -> "Đơn hàng " + event.orderId() + " hiện đang: " + event.newStatus();
         };

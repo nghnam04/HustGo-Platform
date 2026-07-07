@@ -158,6 +158,16 @@ public class OrderController {
         return ResponseEntity.ok(orderService.confirmRoutePaymentCollection(routeId, adminId));
     }
 
+    // Hub xác nhận nhận lại hàng từ Shipper (RETURN_REQUESTED → RETURNING)
+    @PatchMapping("/{id}/hub/confirm-return")
+    @PreAuthorize("hasRole('HUB_ADMIN')")
+    public ResponseEntity<OrderResponse> hubConfirmReturnReceived(
+            @PathVariable String id,
+            @AuthenticationPrincipal String adminId) {
+        return ResponseEntity.ok(orderService.hubConfirmReturnReceived(id, adminId));
+    }
+
+
     // Doanh thu tháng của hub
     @GetMapping("/hub/{hubId}/monthly-revenue")
     @PreAuthorize("hasAnyRole('HUB_ADMIN', 'SUPER_ADMIN')")
@@ -285,14 +295,14 @@ public class OrderController {
         }
     }
 
-    // Lấy danh sách tuyến khả dụng cho Shipper
     @GetMapping("/shipper/available-routes")
     @PreAuthorize("hasRole('SHIPPER')")
     public ResponseEntity<Page<OrderResponse>> getAvailableRoutes(
             @RequestParam(required = false) Double lat,
             @RequestParam(required = false) Double lng,
+            @AuthenticationPrincipal String shipperId,
             @PageableDefault(size = 100) Pageable pageable) {
-        return ResponseEntity.ok(orderService.getAvailableRoutesForShipper(lat, lng, pageable));
+        return ResponseEntity.ok(orderService.getAvailableRoutesForShipper(lat, lng, shipperId, pageable));
     }
 
     // Shipper nhận tuyến giao hàng

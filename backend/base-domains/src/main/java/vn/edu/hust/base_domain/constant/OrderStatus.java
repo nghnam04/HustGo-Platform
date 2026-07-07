@@ -10,5 +10,6 @@ public enum OrderStatus {
     DELIVERING,
     COMPLETED,
     CANCELLED,
-    RETURNING
+    RETURN_REQUESTED, // Shipper báo trả hàng, chờ Hub xác nhận nhận lại
+    RETURNING         // Hub xác nhận đã nhận lại hàng từ Shipper
 }

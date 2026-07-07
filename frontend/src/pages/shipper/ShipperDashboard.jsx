@@ -80,7 +80,7 @@ export default function ShipperDashboard() {
     picking: myOrders.filter((o) => o.status === "PICKING").length,
     delivering: myOrders.filter((o) => o.status === "DELIVERING").length,
     completed: myOrders.filter((o) => o.status === "COMPLETED").length,
-    returning: myOrders.filter((o) => o.status === "RETURNING").length,
+    returning: myOrders.filter((o) => o.status === "RETURNING" || o.status === "RETURN_REQUESTED").length,
   };
 
   const filteredStats = React.useMemo(() => {

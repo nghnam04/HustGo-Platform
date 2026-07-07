@@ -126,6 +126,17 @@ export default function HubInventory() {
     );
   }, [orders, search]);
 
+  const handleConfirmReturn = async (id) => {
+    if (!window.confirm("Xác nhận đã nhận lại đơn hàng này từ Shipper?")) return;
+    try {
+      await orderService.hubConfirmReturn(id);
+      fetchInventory(); // refresh list
+    } catch (err) {
+      console.error(err);
+      alert("Lỗi khi xác nhận hoàn: " + err.response?.data?.message || err.message);
+    }
+  };
+
   return (
     <>
       {/* Toast */}
@@ -239,6 +250,7 @@ export default function HubInventory() {
                     <th className="px-4 py-3 text-right">Thu hộ</th>
                     <th className="px-4 py-3 text-left">Tuyến</th>
                     <th className="px-4 py-3 text-left">Trạng thái</th>
+                    <th className="px-4 py-3 text-right">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -315,6 +327,16 @@ export default function HubInventory() {
                       </td>
                       <td className="px-4 py-3">
                         <Badge value={o.status} map={STATUS_MAP_V2} />
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {o.status === "RETURN_REQUESTED" && (
+                          <button
+                            onClick={() => handleConfirmReturn(o.id)}
+                            className="px-2 py-1 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700 transition"
+                          >
+                            Xác nhận nhận
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}

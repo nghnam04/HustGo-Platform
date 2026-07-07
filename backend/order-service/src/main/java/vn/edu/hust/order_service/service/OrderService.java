@@ -1077,8 +1077,19 @@ public class OrderService {
         }).collect(Collectors.toList());
     }
 
-    // lấy tuyến khả dụng cho shipper
-    public Page<OrderResponse> getAvailableRoutesForShipper(Double lat, Double lng, Pageable pageable) {
+    // Lấy tuyến khả dụng cho shipper
+    public Page<OrderResponse> getAvailableRoutesForShipper(Double lat, Double lng, String shipperId, Pageable pageable) {
+        // Kiểm tra shipper có đang giao tuyến nào không (ACCEPTED hoặc IN_PROGRESS)
+        boolean isDelivering = routeRepository.existsByShipperIdAndStatusIn(
+                shipperId,
+                List.of(RouteStatus.ACCEPTED, RouteStatus.IN_PROGRESS)
+        );
+
+        if (isDelivering) {
+            log.info("Shipper {} đang giao tuyến – ẩn danh sách tuyến khả dụng", shipperId);
+            return Page.empty(pageable);
+        }
+
         List<Order> orders = orderRepository.findAvailableForShipper(OrderStatus.AT_HUB, pageable).getContent();
 
         final Double shipperLat = lat;
@@ -1121,6 +1132,7 @@ public class OrderService {
 
         return new PageImpl<>(pageContent, pageable, filteredResponses.size());
     }
+
 
     // Tính khoảng cách giữa 2 điểm theo công thức Haversine (km)
     private double calculateDistance(double lat1, double lng1, double lat2, double lng2) {
@@ -1293,7 +1305,7 @@ public class OrderService {
         return OrderMapper.mapToResponse(saved);
     }
 
-    // Shipper trả đơn giao thất bại 2 lần về Hub
+    // Shipper báo trả đơn giao thất bại về Hub (chờ Hub xác nhận)
     @Transactional
     public OrderResponse returnOrderToHub(String orderId, ReturnToHubRequest request, String shipperId) {
         Order order = findOrderOrThrow(orderId);
@@ -1302,31 +1314,60 @@ public class OrderService {
             throw new OrderStatusException("Bạn không phải shipper phụ trách đơn hàng này");
         }
 
-        if (order.getStatus() != OrderStatus.DELIVERING && order.getStatus() != OrderStatus.RETURNING) {
-            throw new OrderStatusException("Chỉ trả hàng về hub khi đơn đang DELIVERING hoặc RETURNING (hiện tại: " + order.getStatus() + ")");
+        if (order.getStatus() != OrderStatus.DELIVERING) {
+            throw new OrderStatusException("Chỉ trả hàng về hub khi đơn đang DELIVERING (hiện tại: " + order.getStatus() + ")");
         }
 
         OrderStatus oldStatus = order.getStatus();
         String targetHubId = request.hubId();
-
         String targetHubAdminId = getManagerIdByHub(targetHubId);
-        order.setStatus(OrderStatus.RETURNING);
+
+        order.setStatus(OrderStatus.RETURN_REQUESTED);
         order.setCurrentHubId(targetHubId);
-        recordHistory(orderId, oldStatus, OrderStatus.RETURNING, shipperId,
-                "Shipper trả hàng về hub " + targetHubId + " (thất bại " + (order.getFailCount() == null ? 0 : order.getFailCount()) + " lần, chờ giao lại)");
+        recordHistory(orderId, oldStatus, OrderStatus.RETURN_REQUESTED, shipperId,
+                "Shipper đang trả hàng về hub " + targetHubId + " (thất bại " + (order.getFailCount() == null ? 0 : order.getFailCount()) + " lần) – chờ Hub xác nhận");
 
         Order saved = orderRepository.save(order);
         entityManager.flush();
         entityManager.clear();
-        log.info("Shipper {} trả đơn {} về hub {} (failCount: {})", shipperId, orderId, targetHubId, order.getFailCount());
+        log.info("Shipper {} báo trả đơn {} về hub {} (failCount: {})", shipperId, orderId, targetHubId, order.getFailCount());
 
         kafkaProducer.publishStatusChanged(buildStatusEvent(
-                saved, oldStatus, OrderStatus.RETURNING, null, targetHubAdminId));
+                saved, oldStatus, OrderStatus.RETURN_REQUESTED, null, targetHubAdminId));
 
         checkAndUpdateRouteCompletion(saved.getRouteId());
 
         return OrderMapper.mapToResponse(saved);
     }
+
+    // HubAdmin xác nhận đã nhận lại hàng từ Shipper
+    @Transactional
+    public OrderResponse hubConfirmReturnReceived(String orderId, String adminId) {
+        Order order = findOrderOrThrow(orderId);
+
+        if (order.getStatus() != OrderStatus.RETURN_REQUESTED) {
+            throw new OrderStatusException("Chỉ xác nhận nhận lại khi đơn đang RETURN_REQUESTED (hiện tại: " + order.getStatus() + ")");
+        }
+
+        // Validate admin thuộc đúng hub đang giữ đơn
+        String adminHubId = getHubIdByManager(adminId);
+        if (adminHubId != null && !adminHubId.equals(order.getCurrentHubId())) {
+            throw new OrderStatusException("Đơn này đang trả về hub " + order.getCurrentHubId() + ", không thuộc hub của bạn (" + adminHubId + ")");
+        }
+
+        OrderStatus oldStatus = order.getStatus();
+        order.setStatus(OrderStatus.RETURNING);
+        recordHistory(orderId, oldStatus, OrderStatus.RETURNING, adminId,
+                "Hub xác nhận đã nhận lại hàng từ Shipper");
+
+        Order saved = orderRepository.save(order);
+        log.info("Hub Admin {} xác nhận nhận lại đơn {} về hub {}", adminId, orderId, order.getCurrentHubId());
+
+        kafkaProducer.publishStatusChanged(buildStatusEvent(saved, oldStatus, OrderStatus.RETURNING));
+
+        return OrderMapper.mapToResponse(saved);
+    }
+
 
     // kafka consumer handler
     @Transactional

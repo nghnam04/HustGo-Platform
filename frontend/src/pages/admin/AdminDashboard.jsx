@@ -57,7 +57,11 @@ function StatusBadge({ status }) {
     COMPLETED: { label: "Hoàn thành", color: "bg-green-50 text-green-600" },
     CANCELLED: { label: "Đã hủy", color: "bg-red-50 text-red-600" },
     RETURNING: {
-      label: "Đang hoàn hàng",
+      label: "Đã hoàn hàng",
+      color: "bg-red-50 text-red-600",
+    },
+    RETURN_REQUESTED: {
+      label: "Chờ xác nhận hoàn",
       color: "bg-orange-50 text-orange-600",
     },
   };
@@ -435,6 +439,7 @@ export default function AdminDashboard() {
     COMPLETED: "completed",
     CANCELLED: "cancelled",
     RETURNING: "returning",
+    RETURN_REQUESTED: "returning",
   };
 
   const orderStats = useMemo(() => {

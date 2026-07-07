@@ -68,7 +68,7 @@ export default function CustomerDashboard() {
       ).length,
       completed: orders.filter((o) => o.status === "COMPLETED").length,
       cancelled: orders.filter((o) => o.status === "CANCELLED").length,
-      returning: orders.filter((o) => o.status === "RETURNING").length,
+      returning: orders.filter((o) => o.status === "RETURNING" || o.status === "RETURN_REQUESTED").length,
     }),
     [orders],
   );
@@ -359,7 +359,7 @@ export default function CustomerDashboard() {
 
             <StatCard
               label="Đang hoàn đơn"
-              value={orders.filter((o) => o.status === "RETURNING").length}
+              value={orders.filter((o) => o.status === "RETURNING" || o.status === "RETURN_REQUESTED").length}
               icon={<AlertCircle size={18} />}
               accent="bg-orange-50 text-orange-600"
             />

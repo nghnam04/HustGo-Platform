@@ -68,9 +68,17 @@ const renderStatusBadgev2 = (status) => {
 
     case "RETURNING":
       return (
+        <span className="px-2 py-1 bg-red-50 border border-red-200 text-red-700 rounded-lg text-[10px] font-bold flex items-center gap-1">
+          <Truck size={11} />
+          Đã hoàn đơn
+        </span>
+      );
+
+    case "RETURN_REQUESTED":
+      return (
         <span className="px-2 py-1 bg-orange-50 border border-orange-200 text-orange-700 rounded-lg text-[10px] font-bold flex items-center gap-1">
           <Truck size={11} />
-          Đang hoàn đơn
+          Chờ xác nhận hoàn
         </span>
       );
 

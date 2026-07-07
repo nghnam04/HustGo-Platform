@@ -201,8 +201,9 @@ export default function Navbar({ user, handleLogout }) {
     };
   }, [hubId, role, user?.id]);
 
-  const handleNewNotification = (payload) => {
+  const handleNewNotification = async (payload) => {
     let title = "Cập nhật hệ thống";
+    let customMessage = payload.message;
 
     // PAYMENT
     if (payload.type === "PAYMENT") {
@@ -242,8 +243,24 @@ export default function Navbar({ user, handleLogout }) {
         case "CANCELLED":
           title = "Đơn hàng đã bị hủy";
           break;
+        case "RETURN_REQUESTED":
+          title = "Đơn hàng giao thất bại, Shipper đang trả về bưu cục";
+          break;
         case "RETURNING":
-          title = "Đơn hàng giao thất bại và đang được hoàn về";
+          title = "Đơn hàng đã về bưu cục. Vui lòng đến nhận lại hàng!";
+          if (payload.data?.hubId) {
+            try {
+              const res = await hubService.getHubById(payload.data.hubId);
+              const hub = res.data;
+              const addr = [hub.address, hub.ward, hub.district, hub.city]
+                .filter(Boolean)
+                .join(", ");
+              title = `Đơn hàng đã về bưu cục ${hub.name || "HUSTGo"}`;
+              customMessage = `Vui lòng đến địa chỉ: ${addr} để nhận lại hàng!`;
+            } catch (err) {
+              console.error("Lỗi lấy thông tin hub:", err);
+            }
+          }
           break;
         default:
           title = "Cập nhật đơn hàng";
@@ -368,7 +385,7 @@ export default function Navbar({ user, handleLogout }) {
     const newNoti = {
       id: Date.now() + Math.random(),
       title,
-      message: payload.message,
+      message: customMessage,
       isRead: false,
       createdAt: new Date().toLocaleTimeString("vi-VN", {
         hour: "2-digit",
