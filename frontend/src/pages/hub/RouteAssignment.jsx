@@ -175,10 +175,12 @@ export default function RouteAssignment() {
     [orders, search],
   );
 
-  const toggleSelect = (id) =>
+  const toggleSelect = (id) => {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
+    setPreview(null);
+  };
 
   const selectedOrders = selected
     .map((id) => orders.find((o) => o.id === id))
@@ -383,6 +385,7 @@ export default function RouteAssignment() {
     }
 
     setSelected(chosen.map((o) => o.id));
+    setPreview(null);
     showToast(`Đã gợi ý ${chosen.length} đơn gần nhau nhất từ hub`, "success");
   };
 
@@ -530,7 +533,10 @@ export default function RouteAssignment() {
 
             {selected.length > 0 && (
               <button
-                onClick={() => setSelected([])}
+                onClick={() => {
+                  setSelected([]);
+                  setPreview(null);
+                }}
                 className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg border border-red-200 text-xs sm:text-sm font-medium text-red-600 hover:bg-red-50"
               >
                 <X size={14} /> Bỏ chọn ({selected.length})
@@ -717,7 +723,7 @@ export default function RouteAssignment() {
                   {selected.length}
                 </div>
                 <div className="text-sm text-slate-500 mb-4">
-                  / 5–10 đơn hợp lệ
+                  / 5–20 đơn hợp lệ
                 </div>
 
                 <div className="w-full bg-slate-200 rounded-full h-1.5 mb-4">
@@ -726,7 +732,7 @@ export default function RouteAssignment() {
                       isValid ? "bg-red-500" : "bg-slate-300"
                     }`}
                     style={{
-                      width: `${Math.min((selected.length / 10) * 100, 100)}%`,
+                      width: `${Math.min((selected.length / 20) * 100, 100)}%`,
                     }}
                   />
                 </div>
@@ -765,7 +771,12 @@ export default function RouteAssignment() {
               <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 space-y-3">
                 <button
                   onClick={handleAssign}
-                  disabled={!isValid || assigning || !hubId}
+                  disabled={!isValid || assigning || !hubId || !preview}
+                  title={
+                    !preview
+                      ? "Vui lòng bấm 'Xem trước tuyến đường' trước để tính toán lộ trình"
+                      : ""
+                  }
                   className="w-full py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
                   {assigning ? (
@@ -776,14 +787,21 @@ export default function RouteAssignment() {
                   Tạo tuyến mới
                 </button>
 
+                {isValid && !preview && (
+                  <p className="text-xs text-indigo-600 flex items-center justify-center gap-1 font-medium bg-indigo-50 py-2.5 rounded-lg border border-indigo-100 text-center px-2">
+                    <AlertCircle size={14} className="shrink-0" />
+                    Bấm "Xem trước tuyến đường" để kích hoạt tạo tuyến
+                  </p>
+                )}
+
                 {!isValid && selected.length > 0 && (
                   <div className="space-y-2">
-                    {selected.length < 5 || selected.length > 10 ? (
+                    {selected.length < 5 || selected.length > 20 ? (
                       <p className="text-xs text-red-500 flex items-center gap-1">
                         <AlertCircle size={11} />
                         {selected.length < 5
                           ? `Cần thêm ${5 - selected.length} đơn nữa`
-                          : `Quá 10 đơn (bỏ ${selected.length - 10})`}
+                          : `Quá 20 đơn (bỏ ${selected.length - 20})`}
                       </p>
                     ) : null}
                     {ordersWithoutCoordinates.length > 0 && (

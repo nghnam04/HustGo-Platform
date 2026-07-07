@@ -89,6 +89,10 @@ const STATUS_CFG = {
     label: "Hoàn đơn",
     color: "text-red-700 bg-red-50 border-red-200",
   },
+  RETURN_REQUESTED: {
+    label: "Chờ hub xác nhận hoàn",
+    color: "text-amber-700 bg-amber-50 border-amber-200",
+  },
 };
 
 export default function ActiveDelivery() {
@@ -169,7 +173,7 @@ export default function ActiveDelivery() {
       if (orderSeq && orderSeq.length > 0) {
         setOptimizedOrderIds(orderSeq);
       }
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const showToast = (msg, type = "success") => {
@@ -323,7 +327,7 @@ export default function ActiveDelivery() {
         if (orderSeq && orderSeq.length > 0) {
           setOptimizedOrderIds(orderSeq);
         }
-      } catch (e) {}
+      } catch (e) { }
     };
 
     const tick = () => {
@@ -473,13 +477,13 @@ export default function ActiveDelivery() {
     const sortedForDisplay =
       optimizedOrderIds && optimizedOrderIds.length > 0
         ? [...pendingOrders].sort((a, b) => {
-            const aIdx = optimizedOrderIds.indexOf(toStr(a.id));
-            const bIdx = optimizedOrderIds.indexOf(toStr(b.id));
-            if (aIdx === -1 && bIdx === -1) return 0;
-            if (aIdx === -1) return 1;
-            if (bIdx === -1) return -1;
-            return aIdx - bIdx;
-          })
+          const aIdx = optimizedOrderIds.indexOf(toStr(a.id));
+          const bIdx = optimizedOrderIds.indexOf(toStr(b.id));
+          if (aIdx === -1 && bIdx === -1) return 0;
+          if (aIdx === -1) return 1;
+          if (bIdx === -1) return -1;
+          return aIdx - bIdx;
+        })
         : sortedPending;
 
     sortedForDisplay.forEach((o, idx) => {
@@ -625,15 +629,15 @@ export default function ActiveDelivery() {
               (o) => o.status === "PICKING" || o.status === "DELIVERING",
             ),
           ) && (
-            <button
-              onClick={() => setShowMap((p) => !p)}
-              className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg border text-xs font-semibold transition-colors
+              <button
+                onClick={() => setShowMap((p) => !p)}
+                className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg border text-xs font-semibold transition-colors
                 ${showMap ? "border-blue-300 bg-blue-50 text-blue-700" : "border-slate-200 text-slate-500"}`}
-            >
-              <Map size={13} />
-              Bản đồ
-            </button>
-          )}
+              >
+                <Map size={13} />
+                Bản đồ
+              </button>
+            )}
         </div>
       </div>
 
@@ -718,15 +722,15 @@ export default function ActiveDelivery() {
               (o) => o.status === "COMPLETED",
             ).length;
             const returningOrders = route.orders.filter(
-              (o) => o.status === "RETURNING",
+              (o) => o.status === "RETURNING" || o.status === "RETURN_REQUESTED",
             );
             const totalOrders = route.totalOrders ?? route.orders.length;
             const remaining = totalOrders - completed;
             const progress =
               totalOrders > 0
                 ? Math.round(
-                    ((completed + returningOrders.length) / totalOrders) * 100,
-                  )
+                  ((completed + returningOrders.length) / totalOrders) * 100,
+                )
                 : 0;
 
             return (
@@ -800,7 +804,9 @@ export default function ActiveDelivery() {
                     {(() => {
                       const remaining = route.orders.filter(
                         (o) =>
-                          o.status !== "COMPLETED" && o.status !== "RETURNING",
+                          o.status !== "COMPLETED" &&
+                          o.status !== "RETURNING" &&
+                          o.status !== "RETURN_REQUESTED",
                       );
                       const completed = route.orders.filter(
                         (o) => o.status === "COMPLETED",
@@ -833,10 +839,11 @@ export default function ActiveDelivery() {
                         };
                         const canAct =
                           o.status === "DELIVERING" && (o.failCount ?? 0) < 2;
-                        const canRet =
-                          o.status === "DELIVERING" || o.status === "RETURNING";
+                        const canRet = o.status === "DELIVERING";
                         const isDone =
-                          o.status === "COMPLETED" || o.status === "RETURNING";
+                          o.status === "COMPLETED" ||
+                          o.status === "RETURNING" ||
+                          o.status === "RETURN_REQUESTED";
                         // Tính số thứ tự: đơn còn lại = index từ mảng sorted (đã sắp xếp theo khoảng cách), đơn hoàn thành = 0
                         const orderNum = isDone
                           ? 0
@@ -850,9 +857,22 @@ export default function ActiveDelivery() {
                             <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
                               <div
                                 className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-extrabold shrink-0 mt-0.5
-                              ${isDone ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}
+                              ${o.status === "COMPLETED"
+                                    ? "bg-emerald-100 text-emerald-700"
+                                    : o.status === "RETURNING" ||
+                                      o.status === "RETURN_REQUESTED"
+                                      ? "bg-amber-100 text-amber-700"
+                                      : "bg-red-100 text-red-700"
+                                  }`}
                               >
-                                {isDone ? <CheckCircle2 size={14} /> : orderNum}
+                                {o.status === "COMPLETED" ? (
+                                  <CheckCircle2 size={14} />
+                                ) : o.status === "RETURNING" ||
+                                  o.status === "RETURN_REQUESTED" ? (
+                                  <RotateCcw size={14} />
+                                ) : (
+                                  orderNum
+                                )}
                               </div>
 
                               <div className="flex-1 min-w-0">

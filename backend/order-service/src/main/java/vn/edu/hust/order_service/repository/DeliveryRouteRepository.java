@@ -16,7 +16,7 @@ public interface DeliveryRouteRepository extends JpaRepository<DeliveryRoute, St
 
     List<DeliveryRoute> findByHubIdAndStatus(String hubId, RouteStatus status);
 
-    // Kiểm tra shipper có đang giao tuyến nào không (ACCEPTED hoặc IN_PROGRESS)
+    // Kiểm tra shipper có đang giao tuyến nào không
     @Query("SELECT COUNT(r) > 0 FROM DeliveryRoute r WHERE r.shipperId = :shipperId AND r.status IN :statuses")
     boolean existsByShipperIdAndStatusIn(@Param("shipperId") String shipperId,
                                          @Param("statuses") List<RouteStatus> statuses);
